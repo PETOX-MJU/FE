@@ -1,0 +1,29 @@
+<resources>
+    <string name="app_name">Petox</string>
+
+    <!-- Login -->
+    <string name="login_tagline">함께 놀러</string>
+    <string name="login_kakao">카카오 로그인</string>
+    <string name="login_email">이메일 로그인</string>
+
+    <!-- Email login -->
+    <string name="email_login_title">이메일 로그인</string>
+    <string name="email_login_email_hint">example@gmail.com</string>
+    <string name="email_login_password_hint">비밀번호</string>
+    <string name="email_login_submit">로그인</string>
+    <string name="email_login_to_signup">아직 계정이 없으신가요?  회원가입</string>
+    <string name="email_login_error_email">올바른 이메일 형식을 입력해 주세요</string>
+    <string name="email_login_error_password">비밀번호를 입력해 주세요</string>
+
+    <!-- Sign up -->
+    <string name="signup_subtitle">디지털 디톡스 어플리케이션</string>
+    <string name="signup_nickname_hint">닉네임</string>
+    <string name="signup_email_hint">example@gmail.com</string>
+    <string name="signup_password_hint">비밀번호를 입력해 주세요</string>
+    <string name="signup_submit">통합가입 하기</string>
+
+    <!-- Home (placeholder) -->
+    <string name="home_welcome">로그인 성공!</string>
+    <string name="home_placeholder">펫 홈 화면 준비중이에요 🐾</string>
+    <string name="home_logout">로그아웃</string>
+</resources>

@@ -1,0 +1,327 @@
+-- Merging decision tree log ---
+manifest
+ADDED from /Users/minkyupark/dev/FE/app/src/main/AndroidManifest.xml:2:1-23:12
+INJECTED from /Users/minkyupark/dev/FE/app/src/main/AndroidManifest.xml:2:1-23:12
+INJECTED from /Users/minkyupark/dev/FE/app/src/main/AndroidManifest.xml:2:1-23:12
+INJECTED from /Users/minkyupark/dev/FE/app/src/main/AndroidManifest.xml:2:1-23:12
+MERGED from [androidx.navigation:navigation-common:2.8.5] /Users/minkyupark/.gradle/caches/8.11.1/transforms/24eb5b7672ed1c4fb32abd2d33667a4f/transformed/navigation-common-2.8.5/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.navigation:navigation-runtime:2.8.5] /Users/minkyupark/.gradle/caches/8.11.1/transforms/0ea7609ccf39a35b95578b89360a9bfc/transformed/navigation-runtime-2.8.5/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.navigation:navigation-common-ktx:2.8.5] /Users/minkyupark/.gradle/caches/8.11.1/transforms/5c798844f9ff3424b5d7c26555d8a6c9/transformed/navigation-common-ktx-2.8.5/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.navigation:navigation-runtime-ktx:2.8.5] /Users/minkyupark/.gradle/caches/8.11.1/transforms/068f127171ea1a0a51f562d6c0bb084a/transformed/navigation-runtime-ktx-2.8.5/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.navigation:navigation-compose:2.8.5] /Users/minkyupark/.gradle/caches/8.11.1/transforms/ee05a9b692a00b0b569fd6c292d0fe6a/transformed/navigation-compose-2.8.5/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.material3:material3-android:1.3.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/bd58e75be1f658c63bb033a251b2f6ee/transformed/material3-release/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.compose.material:material-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/86268853f4b7689a6e8fe98dcd06af92/transformed/material-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.animation:animation-core-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/05fc2848a06ed853a71700b706d15184/transformed/animation-core-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.material:material-ripple-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/d32f8221498c12a45645a6dc091af04b/transformed/material-ripple-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.animation:animation-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/9433bf88dc23e24753aa9e86b4c18cb7/transformed/animation-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.foundation:foundation-layout-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/e0e4d5f7d580156690e7521eac921e96/transformed/foundation-layout-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.foundation:foundation-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/512c29c528f48d218862e1c46e3c4c80/transformed/foundation-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-tooling-data-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/092b389799bd22116bc2d2439846a304/transformed/ui-tooling-data-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-unit-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/0a3b937a90fa585e301a2ccd9599d426/transformed/ui-unit-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-geometry-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/0e67b945fc6767601881aec64bb624f0/transformed/ui-geometry-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-util-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/38512bc83b2082386e782bad28284dec/transformed/ui-util-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-text-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/feecb3e1e4074f6bbf2a47308a28ee9a/transformed/ui-text-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/d9744f55ae47debc68e193a7f3215e63/transformed/ui-tooling-preview-release/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.compose.ui:ui-graphics-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/c63e70f73adbce55217c701f136e3188/transformed/ui-graphics-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.savedstate:savedstate-ktx:1.2.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/f8e2da1730447d6e77c91375b3d2890b/transformed/savedstate-ktx-1.2.1/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.savedstate:savedstate:1.2.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/72302188473b79017b8dbc761ed0e5b2/transformed/savedstate-1.2.1/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.emoji2:emoji2:1.3.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/0338337b74f784e3d12d1619c457c3d9/transformed/emoji2-1.3.0/AndroidManifest.xml:17:1-35:12
+MERGED from [androidx.lifecycle:lifecycle-process:2.8.7] /Users/minkyupark/.gradle/caches/8.11.1/transforms/994cfe378928a49299fe293cb7f7e5fb/transformed/lifecycle-process-2.8.7/AndroidManifest.xml:17:1-35:12
+MERGED from [androidx.lifecycle:lifecycle-runtime-compose-android:2.8.7] /Users/minkyupark/.gradle/caches/8.11.1/transforms/7a401b1f5b988e97effe52f88961a79d/transformed/lifecycle-runtime-compose-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.8.7] /Users/minkyupark/.gradle/caches/8.11.1/transforms/ead9f52f71c55fc014268203c9074653/transformed/lifecycle-livedata-core-2.8.7/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.8.7] /Users/minkyupark/.gradle/caches/8.11.1/transforms/a58799932f1a3242785b28147c3a83e1/transformed/lifecycle-viewmodel-savedstate-2.8.7/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-android:2.8.7] /Users/minkyupark/.gradle/caches/8.11.1/transforms/ee72dae504ab2434c000ce6c3512e5f0/transformed/lifecycle-viewmodel-release/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-runtime-android:2.8.7] /Users/minkyupark/.gradle/caches/8.11.1/transforms/3b78eadd67d001b0bad58a4c8a5ab9d1/transformed/lifecycle-runtime-release/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7] /Users/minkyupark/.gradle/caches/8.11.1/transforms/40cd376762988e49f629cdf337729801/transformed/lifecycle-viewmodel-ktx-2.8.7/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-runtime-ktx-android:2.8.7] /Users/minkyupark/.gradle/caches/8.11.1/transforms/1e4a147d4ee0aa2b766327e020dc8d5b/transformed/lifecycle-runtime-ktx-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose-android:2.8.7] /Users/minkyupark/.gradle/caches/8.11.1/transforms/2b570c43351b9ae327e3bf0e984d6ef5/transformed/lifecycle-viewmodel-compose-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.material:material-icons-extended-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/44555743f59d328212756db5567981e5/transformed/material-icons-extended-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.material:material-icons-core-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/9627d8baa193fd5b4b75193bb7f9a09e/transformed/material-icons-core-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/429bbaf0e0a54593a4147748eafe6af7/transformed/ui-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-tooling-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/ede05be80dc17be67c74570b15e454b9/transformed/ui-tooling-release/AndroidManifest.xml:17:1-28:12
+MERGED from [androidx.activity:activity-compose:1.9.3] /Users/minkyupark/.gradle/caches/8.11.1/transforms/67e55713ce217a3324168802ae5b1dc4/transformed/activity-compose-1.9.3/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.activity:activity-ktx:1.9.3] /Users/minkyupark/.gradle/caches/8.11.1/transforms/c7038fc299b1fb2e0cfcad5f2d78331c/transformed/activity-ktx-1.9.3/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.activity:activity:1.9.3] /Users/minkyupark/.gradle/caches/8.11.1/transforms/5618219249ca003c1f717362e8ac56b2/transformed/activity-1.9.3/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.autofill:autofill:1.0.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/309c06b6bb419e6b58b8b6f720b09512/transformed/autofill-1.0.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.graphics:graphics-path:1.0.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/51b36af8459189fc18fe52ed50da1c50/transformed/graphics-path-1.0.1/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.core:core:1.15.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/372222327f5c9ec7ec3873656a00220e/transformed/core-1.15.0/AndroidManifest.xml:17:1-30:12
+MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/0d6d09e8a27c8b4d5e24105f0cc382b1/transformed/customview-poolingcontainer-1.0.0/AndroidManifest.xml:17:1-23:12
+MERGED from [androidx.core:core-ktx:1.15.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/2c3a40851460850f92e9640cfee14aad/transformed/core-ktx-1.15.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.interpolator:interpolator:1.0.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/cf75f43f800e3594501237850adcd806/transformed/interpolator-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/e096839809948b82660a5d6fd4a66c4a/transformed/profileinstaller-1.3.1/AndroidManifest.xml:17:1-55:12
+MERGED from [androidx.startup:startup-runtime:1.1.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/23363586723af07f8ac493e0b7fae11a/transformed/startup-runtime-1.1.1/AndroidManifest.xml:17:1-33:12
+MERGED from [androidx.tracing:tracing:1.2.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/b2a44b006503dfbbdeff06f671af0bd9/transformed/tracing-1.2.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/c0465010f9dacf0328703de9b57018ed/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:17:1-27:12
+MERGED from [androidx.compose.runtime:runtime-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/89f5cda88a02e2690f8f24f7e9a1a777/transformed/runtime-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.runtime:runtime-saveable-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/2da1172497dba04f2212a8276bd91d06/transformed/runtime-saveable-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.arch.core:core-runtime:2.2.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/c17bff305ff453a4cf99b36ed529d9bf/transformed/core-runtime-2.2.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.annotation:annotation-experimental:1.4.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/43a4ebf86b50481733b39090c6e75899/transformed/annotation-experimental-1.4.1/AndroidManifest.xml:2:1-7:12
+	package
+		INJECTED from /Users/minkyupark/dev/FE/app/src/main/AndroidManifest.xml
+	android:versionName
+		INJECTED from /Users/minkyupark/dev/FE/app/src/main/AndroidManifest.xml
+	android:versionCode
+		INJECTED from /Users/minkyupark/dev/FE/app/src/main/AndroidManifest.xml
+	xmlns:android
+		ADDED from /Users/minkyupark/dev/FE/app/src/main/AndroidManifest.xml:2:11-69
+application
+ADDED from /Users/minkyupark/dev/FE/app/src/main/AndroidManifest.xml:4:5-21:19
+INJECTED from /Users/minkyupark/dev/FE/app/src/main/AndroidManifest.xml:4:5-21:19
+MERGED from [androidx.emoji2:emoji2:1.3.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/0338337b74f784e3d12d1619c457c3d9/transformed/emoji2-1.3.0/AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.emoji2:emoji2:1.3.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/0338337b74f784e3d12d1619c457c3d9/transformed/emoji2-1.3.0/AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.lifecycle:lifecycle-process:2.8.7] /Users/minkyupark/.gradle/caches/8.11.1/transforms/994cfe378928a49299fe293cb7f7e5fb/transformed/lifecycle-process-2.8.7/AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.lifecycle:lifecycle-process:2.8.7] /Users/minkyupark/.gradle/caches/8.11.1/transforms/994cfe378928a49299fe293cb7f7e5fb/transformed/lifecycle-process-2.8.7/AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.compose.ui:ui-tooling-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/ede05be80dc17be67c74570b15e454b9/transformed/ui-tooling-release/AndroidManifest.xml:22:5-26:19
+MERGED from [androidx.compose.ui:ui-tooling-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/ede05be80dc17be67c74570b15e454b9/transformed/ui-tooling-release/AndroidManifest.xml:22:5-26:19
+MERGED from [androidx.core:core:1.15.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/372222327f5c9ec7ec3873656a00220e/transformed/core-1.15.0/AndroidManifest.xml:28:5-89
+MERGED from [androidx.core:core:1.15.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/372222327f5c9ec7ec3873656a00220e/transformed/core-1.15.0/AndroidManifest.xml:28:5-89
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/e096839809948b82660a5d6fd4a66c4a/transformed/profileinstaller-1.3.1/AndroidManifest.xml:23:5-53:19
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/e096839809948b82660a5d6fd4a66c4a/transformed/profileinstaller-1.3.1/AndroidManifest.xml:23:5-53:19
+MERGED from [androidx.startup:startup-runtime:1.1.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/23363586723af07f8ac493e0b7fae11a/transformed/startup-runtime-1.1.1/AndroidManifest.xml:25:5-31:19
+MERGED from [androidx.startup:startup-runtime:1.1.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/23363586723af07f8ac493e0b7fae11a/transformed/startup-runtime-1.1.1/AndroidManifest.xml:25:5-31:19
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/c0465010f9dacf0328703de9b57018ed/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:24:5-25:19
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/c0465010f9dacf0328703de9b57018ed/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:24:5-25:19
+	android:extractNativeLibs
+		INJECTED from /Users/minkyupark/dev/FE/app/src/main/AndroidManifest.xml
+	android:appComponentFactory
+		ADDED from [androidx.core:core:1.15.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/372222327f5c9ec7ec3873656a00220e/transformed/core-1.15.0/AndroidManifest.xml:28:18-86
+	android:supportsRtl
+		ADDED from /Users/minkyupark/dev/FE/app/src/main/AndroidManifest.xml:9:9-35
+	android:label
+		ADDED from /Users/minkyupark/dev/FE/app/src/main/AndroidManifest.xml:7:9-41
+	android:roundIcon
+		ADDED from /Users/minkyupark/dev/FE/app/src/main/AndroidManifest.xml:8:9-54
+	android:icon
+		ADDED from /Users/minkyupark/dev/FE/app/src/main/AndroidManifest.xml:6:9-43
+	android:allowBackup
+		ADDED from /Users/minkyupark/dev/FE/app/src/main/AndroidManifest.xml:5:9-35
+	android:theme
+		ADDED from /Users/minkyupark/dev/FE/app/src/main/AndroidManifest.xml:10:9-43
+activity#com.petox.app.MainActivity
+ADDED from /Users/minkyupark/dev/FE/app/src/main/AndroidManifest.xml:11:9-20:20
+	android:label
+		ADDED from /Users/minkyupark/dev/FE/app/src/main/AndroidManifest.xml:14:13-45
+	android:exported
+		ADDED from /Users/minkyupark/dev/FE/app/src/main/AndroidManifest.xml:13:13-36
+	android:theme
+		ADDED from /Users/minkyupark/dev/FE/app/src/main/AndroidManifest.xml:15:13-47
+	android:name
+		ADDED from /Users/minkyupark/dev/FE/app/src/main/AndroidManifest.xml:12:13-41
+intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
+ADDED from /Users/minkyupark/dev/FE/app/src/main/AndroidManifest.xml:16:13-19:29
+action#android.intent.action.MAIN
+ADDED from /Users/minkyupark/dev/FE/app/src/main/AndroidManifest.xml:17:17-69
+	android:name
+		ADDED from /Users/minkyupark/dev/FE/app/src/main/AndroidManifest.xml:17:25-66
+category#android.intent.category.LAUNCHER
+ADDED from /Users/minkyupark/dev/FE/app/src/main/AndroidManifest.xml:18:17-77
+	android:name
+		ADDED from /Users/minkyupark/dev/FE/app/src/main/AndroidManifest.xml:18:27-74
+uses-sdk
+INJECTED from /Users/minkyupark/dev/FE/app/src/main/AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from /Users/minkyupark/dev/FE/app/src/main/AndroidManifest.xml
+INJECTED from /Users/minkyupark/dev/FE/app/src/main/AndroidManifest.xml
+MERGED from [androidx.navigation:navigation-common:2.8.5] /Users/minkyupark/.gradle/caches/8.11.1/transforms/24eb5b7672ed1c4fb32abd2d33667a4f/transformed/navigation-common-2.8.5/AndroidManifest.xml:20:5-44
+MERGED from [androidx.navigation:navigation-common:2.8.5] /Users/minkyupark/.gradle/caches/8.11.1/transforms/24eb5b7672ed1c4fb32abd2d33667a4f/transformed/navigation-common-2.8.5/AndroidManifest.xml:20:5-44
+MERGED from [androidx.navigation:navigation-runtime:2.8.5] /Users/minkyupark/.gradle/caches/8.11.1/transforms/0ea7609ccf39a35b95578b89360a9bfc/transformed/navigation-runtime-2.8.5/AndroidManifest.xml:20:5-44
+MERGED from [androidx.navigation:navigation-runtime:2.8.5] /Users/minkyupark/.gradle/caches/8.11.1/transforms/0ea7609ccf39a35b95578b89360a9bfc/transformed/navigation-runtime-2.8.5/AndroidManifest.xml:20:5-44
+MERGED from [androidx.navigation:navigation-common-ktx:2.8.5] /Users/minkyupark/.gradle/caches/8.11.1/transforms/5c798844f9ff3424b5d7c26555d8a6c9/transformed/navigation-common-ktx-2.8.5/AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigation:navigation-common-ktx:2.8.5] /Users/minkyupark/.gradle/caches/8.11.1/transforms/5c798844f9ff3424b5d7c26555d8a6c9/transformed/navigation-common-ktx-2.8.5/AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigation:navigation-runtime-ktx:2.8.5] /Users/minkyupark/.gradle/caches/8.11.1/transforms/068f127171ea1a0a51f562d6c0bb084a/transformed/navigation-runtime-ktx-2.8.5/AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigation:navigation-runtime-ktx:2.8.5] /Users/minkyupark/.gradle/caches/8.11.1/transforms/068f127171ea1a0a51f562d6c0bb084a/transformed/navigation-runtime-ktx-2.8.5/AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigation:navigation-compose:2.8.5] /Users/minkyupark/.gradle/caches/8.11.1/transforms/ee05a9b692a00b0b569fd6c292d0fe6a/transformed/navigation-compose-2.8.5/AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigation:navigation-compose:2.8.5] /Users/minkyupark/.gradle/caches/8.11.1/transforms/ee05a9b692a00b0b569fd6c292d0fe6a/transformed/navigation-compose-2.8.5/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material3:material3-android:1.3.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/bd58e75be1f658c63bb033a251b2f6ee/transformed/material3-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.material3:material3-android:1.3.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/bd58e75be1f658c63bb033a251b2f6ee/transformed/material3-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.material:material-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/86268853f4b7689a6e8fe98dcd06af92/transformed/material-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/86268853f4b7689a6e8fe98dcd06af92/transformed/material-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-core-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/05fc2848a06ed853a71700b706d15184/transformed/animation-core-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-core-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/05fc2848a06ed853a71700b706d15184/transformed/animation-core-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-ripple-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/d32f8221498c12a45645a6dc091af04b/transformed/material-ripple-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-ripple-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/d32f8221498c12a45645a6dc091af04b/transformed/material-ripple-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/9433bf88dc23e24753aa9e86b4c18cb7/transformed/animation-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/9433bf88dc23e24753aa9e86b4c18cb7/transformed/animation-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-layout-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/e0e4d5f7d580156690e7521eac921e96/transformed/foundation-layout-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-layout-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/e0e4d5f7d580156690e7521eac921e96/transformed/foundation-layout-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/512c29c528f48d218862e1c46e3c4c80/transformed/foundation-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/512c29c528f48d218862e1c46e3c4c80/transformed/foundation-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-tooling-data-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/092b389799bd22116bc2d2439846a304/transformed/ui-tooling-data-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-tooling-data-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/092b389799bd22116bc2d2439846a304/transformed/ui-tooling-data-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-unit-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/0a3b937a90fa585e301a2ccd9599d426/transformed/ui-unit-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-unit-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/0a3b937a90fa585e301a2ccd9599d426/transformed/ui-unit-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-geometry-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/0e67b945fc6767601881aec64bb624f0/transformed/ui-geometry-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-geometry-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/0e67b945fc6767601881aec64bb624f0/transformed/ui-geometry-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-util-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/38512bc83b2082386e782bad28284dec/transformed/ui-util-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-util-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/38512bc83b2082386e782bad28284dec/transformed/ui-util-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-text-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/feecb3e1e4074f6bbf2a47308a28ee9a/transformed/ui-text-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-text-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/feecb3e1e4074f6bbf2a47308a28ee9a/transformed/ui-text-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/d9744f55ae47debc68e193a7f3215e63/transformed/ui-tooling-preview-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/d9744f55ae47debc68e193a7f3215e63/transformed/ui-tooling-preview-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-graphics-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/c63e70f73adbce55217c701f136e3188/transformed/ui-graphics-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-graphics-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/c63e70f73adbce55217c701f136e3188/transformed/ui-graphics-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.savedstate:savedstate-ktx:1.2.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/f8e2da1730447d6e77c91375b3d2890b/transformed/savedstate-ktx-1.2.1/AndroidManifest.xml:20:5-44
+MERGED from [androidx.savedstate:savedstate-ktx:1.2.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/f8e2da1730447d6e77c91375b3d2890b/transformed/savedstate-ktx-1.2.1/AndroidManifest.xml:20:5-44
+MERGED from [androidx.savedstate:savedstate:1.2.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/72302188473b79017b8dbc761ed0e5b2/transformed/savedstate-1.2.1/AndroidManifest.xml:20:5-44
+MERGED from [androidx.savedstate:savedstate:1.2.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/72302188473b79017b8dbc761ed0e5b2/transformed/savedstate-1.2.1/AndroidManifest.xml:20:5-44
+MERGED from [androidx.emoji2:emoji2:1.3.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/0338337b74f784e3d12d1619c457c3d9/transformed/emoji2-1.3.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.emoji2:emoji2:1.3.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/0338337b74f784e3d12d1619c457c3d9/transformed/emoji2-1.3.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.lifecycle:lifecycle-process:2.8.7] /Users/minkyupark/.gradle/caches/8.11.1/transforms/994cfe378928a49299fe293cb7f7e5fb/transformed/lifecycle-process-2.8.7/AndroidManifest.xml:21:5-44
+MERGED from [androidx.lifecycle:lifecycle-process:2.8.7] /Users/minkyupark/.gradle/caches/8.11.1/transforms/994cfe378928a49299fe293cb7f7e5fb/transformed/lifecycle-process-2.8.7/AndroidManifest.xml:21:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-compose-android:2.8.7] /Users/minkyupark/.gradle/caches/8.11.1/transforms/7a401b1f5b988e97effe52f88961a79d/transformed/lifecycle-runtime-compose-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-compose-android:2.8.7] /Users/minkyupark/.gradle/caches/8.11.1/transforms/7a401b1f5b988e97effe52f88961a79d/transformed/lifecycle-runtime-compose-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.8.7] /Users/minkyupark/.gradle/caches/8.11.1/transforms/ead9f52f71c55fc014268203c9074653/transformed/lifecycle-livedata-core-2.8.7/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.8.7] /Users/minkyupark/.gradle/caches/8.11.1/transforms/ead9f52f71c55fc014268203c9074653/transformed/lifecycle-livedata-core-2.8.7/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.8.7] /Users/minkyupark/.gradle/caches/8.11.1/transforms/a58799932f1a3242785b28147c3a83e1/transformed/lifecycle-viewmodel-savedstate-2.8.7/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.8.7] /Users/minkyupark/.gradle/caches/8.11.1/transforms/a58799932f1a3242785b28147c3a83e1/transformed/lifecycle-viewmodel-savedstate-2.8.7/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-android:2.8.7] /Users/minkyupark/.gradle/caches/8.11.1/transforms/ee72dae504ab2434c000ce6c3512e5f0/transformed/lifecycle-viewmodel-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-android:2.8.7] /Users/minkyupark/.gradle/caches/8.11.1/transforms/ee72dae504ab2434c000ce6c3512e5f0/transformed/lifecycle-viewmodel-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-android:2.8.7] /Users/minkyupark/.gradle/caches/8.11.1/transforms/3b78eadd67d001b0bad58a4c8a5ab9d1/transformed/lifecycle-runtime-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-android:2.8.7] /Users/minkyupark/.gradle/caches/8.11.1/transforms/3b78eadd67d001b0bad58a4c8a5ab9d1/transformed/lifecycle-runtime-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7] /Users/minkyupark/.gradle/caches/8.11.1/transforms/40cd376762988e49f629cdf337729801/transformed/lifecycle-viewmodel-ktx-2.8.7/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7] /Users/minkyupark/.gradle/caches/8.11.1/transforms/40cd376762988e49f629cdf337729801/transformed/lifecycle-viewmodel-ktx-2.8.7/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-ktx-android:2.8.7] /Users/minkyupark/.gradle/caches/8.11.1/transforms/1e4a147d4ee0aa2b766327e020dc8d5b/transformed/lifecycle-runtime-ktx-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-ktx-android:2.8.7] /Users/minkyupark/.gradle/caches/8.11.1/transforms/1e4a147d4ee0aa2b766327e020dc8d5b/transformed/lifecycle-runtime-ktx-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose-android:2.8.7] /Users/minkyupark/.gradle/caches/8.11.1/transforms/2b570c43351b9ae327e3bf0e984d6ef5/transformed/lifecycle-viewmodel-compose-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose-android:2.8.7] /Users/minkyupark/.gradle/caches/8.11.1/transforms/2b570c43351b9ae327e3bf0e984d6ef5/transformed/lifecycle-viewmodel-compose-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-icons-extended-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/44555743f59d328212756db5567981e5/transformed/material-icons-extended-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-icons-extended-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/44555743f59d328212756db5567981e5/transformed/material-icons-extended-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-icons-core-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/9627d8baa193fd5b4b75193bb7f9a09e/transformed/material-icons-core-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-icons-core-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/9627d8baa193fd5b4b75193bb7f9a09e/transformed/material-icons-core-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/429bbaf0e0a54593a4147748eafe6af7/transformed/ui-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/429bbaf0e0a54593a4147748eafe6af7/transformed/ui-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-tooling-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/ede05be80dc17be67c74570b15e454b9/transformed/ui-tooling-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-tooling-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/ede05be80dc17be67c74570b15e454b9/transformed/ui-tooling-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.activity:activity-compose:1.9.3] /Users/minkyupark/.gradle/caches/8.11.1/transforms/67e55713ce217a3324168802ae5b1dc4/transformed/activity-compose-1.9.3/AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity-compose:1.9.3] /Users/minkyupark/.gradle/caches/8.11.1/transforms/67e55713ce217a3324168802ae5b1dc4/transformed/activity-compose-1.9.3/AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity-ktx:1.9.3] /Users/minkyupark/.gradle/caches/8.11.1/transforms/c7038fc299b1fb2e0cfcad5f2d78331c/transformed/activity-ktx-1.9.3/AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity-ktx:1.9.3] /Users/minkyupark/.gradle/caches/8.11.1/transforms/c7038fc299b1fb2e0cfcad5f2d78331c/transformed/activity-ktx-1.9.3/AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity:1.9.3] /Users/minkyupark/.gradle/caches/8.11.1/transforms/5618219249ca003c1f717362e8ac56b2/transformed/activity-1.9.3/AndroidManifest.xml:20:5-44
+MERGED from [androidx.activity:activity:1.9.3] /Users/minkyupark/.gradle/caches/8.11.1/transforms/5618219249ca003c1f717362e8ac56b2/transformed/activity-1.9.3/AndroidManifest.xml:20:5-44
+MERGED from [androidx.autofill:autofill:1.0.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/309c06b6bb419e6b58b8b6f720b09512/transformed/autofill-1.0.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.autofill:autofill:1.0.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/309c06b6bb419e6b58b8b6f720b09512/transformed/autofill-1.0.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.graphics:graphics-path:1.0.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/51b36af8459189fc18fe52ed50da1c50/transformed/graphics-path-1.0.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.graphics:graphics-path:1.0.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/51b36af8459189fc18fe52ed50da1c50/transformed/graphics-path-1.0.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.core:core:1.15.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/372222327f5c9ec7ec3873656a00220e/transformed/core-1.15.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.core:core:1.15.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/372222327f5c9ec7ec3873656a00220e/transformed/core-1.15.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/0d6d09e8a27c8b4d5e24105f0cc382b1/transformed/customview-poolingcontainer-1.0.0/AndroidManifest.xml:20:5-21:38
+MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/0d6d09e8a27c8b4d5e24105f0cc382b1/transformed/customview-poolingcontainer-1.0.0/AndroidManifest.xml:20:5-21:38
+MERGED from [androidx.core:core-ktx:1.15.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/2c3a40851460850f92e9640cfee14aad/transformed/core-ktx-1.15.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.core:core-ktx:1.15.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/2c3a40851460850f92e9640cfee14aad/transformed/core-ktx-1.15.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.interpolator:interpolator:1.0.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/cf75f43f800e3594501237850adcd806/transformed/interpolator-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.interpolator:interpolator:1.0.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/cf75f43f800e3594501237850adcd806/transformed/interpolator-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/e096839809948b82660a5d6fd4a66c4a/transformed/profileinstaller-1.3.1/AndroidManifest.xml:21:5-44
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/e096839809948b82660a5d6fd4a66c4a/transformed/profileinstaller-1.3.1/AndroidManifest.xml:21:5-44
+MERGED from [androidx.startup:startup-runtime:1.1.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/23363586723af07f8ac493e0b7fae11a/transformed/startup-runtime-1.1.1/AndroidManifest.xml:21:5-23:41
+MERGED from [androidx.startup:startup-runtime:1.1.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/23363586723af07f8ac493e0b7fae11a/transformed/startup-runtime-1.1.1/AndroidManifest.xml:21:5-23:41
+MERGED from [androidx.tracing:tracing:1.2.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/b2a44b006503dfbbdeff06f671af0bd9/transformed/tracing-1.2.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.tracing:tracing:1.2.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/b2a44b006503dfbbdeff06f671af0bd9/transformed/tracing-1.2.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/c0465010f9dacf0328703de9b57018ed/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/c0465010f9dacf0328703de9b57018ed/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.compose.runtime:runtime-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/89f5cda88a02e2690f8f24f7e9a1a777/transformed/runtime-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/89f5cda88a02e2690f8f24f7e9a1a777/transformed/runtime-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-saveable-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/2da1172497dba04f2212a8276bd91d06/transformed/runtime-saveable-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-saveable-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/2da1172497dba04f2212a8276bd91d06/transformed/runtime-saveable-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.arch.core:core-runtime:2.2.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/c17bff305ff453a4cf99b36ed529d9bf/transformed/core-runtime-2.2.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.arch.core:core-runtime:2.2.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/c17bff305ff453a4cf99b36ed529d9bf/transformed/core-runtime-2.2.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.annotation:annotation-experimental:1.4.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/43a4ebf86b50481733b39090c6e75899/transformed/annotation-experimental-1.4.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.annotation:annotation-experimental:1.4.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/43a4ebf86b50481733b39090c6e75899/transformed/annotation-experimental-1.4.1/AndroidManifest.xml:5:5-44
+	android:targetSdkVersion
+		INJECTED from /Users/minkyupark/dev/FE/app/src/main/AndroidManifest.xml
+	android:minSdkVersion
+		INJECTED from /Users/minkyupark/dev/FE/app/src/main/AndroidManifest.xml
+provider#androidx.startup.InitializationProvider
+ADDED from [androidx.emoji2:emoji2:1.3.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/0338337b74f784e3d12d1619c457c3d9/transformed/emoji2-1.3.0/AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.lifecycle:lifecycle-process:2.8.7] /Users/minkyupark/.gradle/caches/8.11.1/transforms/994cfe378928a49299fe293cb7f7e5fb/transformed/lifecycle-process-2.8.7/AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.lifecycle:lifecycle-process:2.8.7] /Users/minkyupark/.gradle/caches/8.11.1/transforms/994cfe378928a49299fe293cb7f7e5fb/transformed/lifecycle-process-2.8.7/AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/e096839809948b82660a5d6fd4a66c4a/transformed/profileinstaller-1.3.1/AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/e096839809948b82660a5d6fd4a66c4a/transformed/profileinstaller-1.3.1/AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.startup:startup-runtime:1.1.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/23363586723af07f8ac493e0b7fae11a/transformed/startup-runtime-1.1.1/AndroidManifest.xml:26:9-30:34
+MERGED from [androidx.startup:startup-runtime:1.1.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/23363586723af07f8ac493e0b7fae11a/transformed/startup-runtime-1.1.1/AndroidManifest.xml:26:9-30:34
+	tools:node
+		ADDED from [androidx.emoji2:emoji2:1.3.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/0338337b74f784e3d12d1619c457c3d9/transformed/emoji2-1.3.0/AndroidManifest.xml:28:13-31
+	android:authorities
+		ADDED from [androidx.emoji2:emoji2:1.3.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/0338337b74f784e3d12d1619c457c3d9/transformed/emoji2-1.3.0/AndroidManifest.xml:26:13-68
+	android:exported
+		ADDED from [androidx.emoji2:emoji2:1.3.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/0338337b74f784e3d12d1619c457c3d9/transformed/emoji2-1.3.0/AndroidManifest.xml:27:13-37
+	android:name
+		ADDED from [androidx.emoji2:emoji2:1.3.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/0338337b74f784e3d12d1619c457c3d9/transformed/emoji2-1.3.0/AndroidManifest.xml:25:13-67
+meta-data#androidx.emoji2.text.EmojiCompatInitializer
+ADDED from [androidx.emoji2:emoji2:1.3.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/0338337b74f784e3d12d1619c457c3d9/transformed/emoji2-1.3.0/AndroidManifest.xml:29:13-31:52
+	android:value
+		ADDED from [androidx.emoji2:emoji2:1.3.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/0338337b74f784e3d12d1619c457c3d9/transformed/emoji2-1.3.0/AndroidManifest.xml:31:17-49
+	android:name
+		ADDED from [androidx.emoji2:emoji2:1.3.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/0338337b74f784e3d12d1619c457c3d9/transformed/emoji2-1.3.0/AndroidManifest.xml:30:17-75
+meta-data#androidx.lifecycle.ProcessLifecycleInitializer
+ADDED from [androidx.lifecycle:lifecycle-process:2.8.7] /Users/minkyupark/.gradle/caches/8.11.1/transforms/994cfe378928a49299fe293cb7f7e5fb/transformed/lifecycle-process-2.8.7/AndroidManifest.xml:29:13-31:52
+	android:value
+		ADDED from [androidx.lifecycle:lifecycle-process:2.8.7] /Users/minkyupark/.gradle/caches/8.11.1/transforms/994cfe378928a49299fe293cb7f7e5fb/transformed/lifecycle-process-2.8.7/AndroidManifest.xml:31:17-49
+	android:name
+		ADDED from [androidx.lifecycle:lifecycle-process:2.8.7] /Users/minkyupark/.gradle/caches/8.11.1/transforms/994cfe378928a49299fe293cb7f7e5fb/transformed/lifecycle-process-2.8.7/AndroidManifest.xml:30:17-78
+activity#androidx.compose.ui.tooling.PreviewActivity
+ADDED from [androidx.compose.ui:ui-tooling-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/ede05be80dc17be67c74570b15e454b9/transformed/ui-tooling-release/AndroidManifest.xml:23:9-25:39
+	android:exported
+		ADDED from [androidx.compose.ui:ui-tooling-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/ede05be80dc17be67c74570b15e454b9/transformed/ui-tooling-release/AndroidManifest.xml:25:13-36
+	android:name
+		ADDED from [androidx.compose.ui:ui-tooling-android:1.7.6] /Users/minkyupark/.gradle/caches/8.11.1/transforms/ede05be80dc17be67c74570b15e454b9/transformed/ui-tooling-release/AndroidManifest.xml:24:13-71
+permission#${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.15.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/372222327f5c9ec7ec3873656a00220e/transformed/core-1.15.0/AndroidManifest.xml:22:5-24:47
+	android:protectionLevel
+		ADDED from [androidx.core:core:1.15.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/372222327f5c9ec7ec3873656a00220e/transformed/core-1.15.0/AndroidManifest.xml:24:9-44
+	android:name
+		ADDED from [androidx.core:core:1.15.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/372222327f5c9ec7ec3873656a00220e/transformed/core-1.15.0/AndroidManifest.xml:23:9-81
+permission#com.petox.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.15.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/372222327f5c9ec7ec3873656a00220e/transformed/core-1.15.0/AndroidManifest.xml:22:5-24:47
+	android:protectionLevel
+		ADDED from [androidx.core:core:1.15.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/372222327f5c9ec7ec3873656a00220e/transformed/core-1.15.0/AndroidManifest.xml:24:9-44
+	android:name
+		ADDED from [androidx.core:core:1.15.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/372222327f5c9ec7ec3873656a00220e/transformed/core-1.15.0/AndroidManifest.xml:23:9-81
+uses-permission#${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.15.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/372222327f5c9ec7ec3873656a00220e/transformed/core-1.15.0/AndroidManifest.xml:26:5-97
+	android:name
+		ADDED from [androidx.core:core:1.15.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/372222327f5c9ec7ec3873656a00220e/transformed/core-1.15.0/AndroidManifest.xml:26:22-94
+uses-permission#com.petox.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.15.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/372222327f5c9ec7ec3873656a00220e/transformed/core-1.15.0/AndroidManifest.xml:26:5-97
+	android:name
+		ADDED from [androidx.core:core:1.15.0] /Users/minkyupark/.gradle/caches/8.11.1/transforms/372222327f5c9ec7ec3873656a00220e/transformed/core-1.15.0/AndroidManifest.xml:26:22-94
+meta-data#androidx.profileinstaller.ProfileInstallerInitializer
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/e096839809948b82660a5d6fd4a66c4a/transformed/profileinstaller-1.3.1/AndroidManifest.xml:29:13-31:52
+	android:value
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/e096839809948b82660a5d6fd4a66c4a/transformed/profileinstaller-1.3.1/AndroidManifest.xml:31:17-49
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/e096839809948b82660a5d6fd4a66c4a/transformed/profileinstaller-1.3.1/AndroidManifest.xml:30:17-85
+receiver#androidx.profileinstaller.ProfileInstallReceiver
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/e096839809948b82660a5d6fd4a66c4a/transformed/profileinstaller-1.3.1/AndroidManifest.xml:34:9-52:20
+	android:enabled
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/e096839809948b82660a5d6fd4a66c4a/transformed/profileinstaller-1.3.1/AndroidManifest.xml:37:13-35
+	android:exported
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/e096839809948b82660a5d6fd4a66c4a/transformed/profileinstaller-1.3.1/AndroidManifest.xml:38:13-36
+	android:permission
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/e096839809948b82660a5d6fd4a66c4a/transformed/profileinstaller-1.3.1/AndroidManifest.xml:39:13-57
+	android:directBootAware
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/e096839809948b82660a5d6fd4a66c4a/transformed/profileinstaller-1.3.1/AndroidManifest.xml:36:13-44
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/e096839809948b82660a5d6fd4a66c4a/transformed/profileinstaller-1.3.1/AndroidManifest.xml:35:13-76
+intent-filter#action:name:androidx.profileinstaller.action.INSTALL_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/e096839809948b82660a5d6fd4a66c4a/transformed/profileinstaller-1.3.1/AndroidManifest.xml:40:13-42:29
+action#androidx.profileinstaller.action.INSTALL_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/e096839809948b82660a5d6fd4a66c4a/transformed/profileinstaller-1.3.1/AndroidManifest.xml:41:17-91
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/e096839809948b82660a5d6fd4a66c4a/transformed/profileinstaller-1.3.1/AndroidManifest.xml:41:25-88
+intent-filter#action:name:androidx.profileinstaller.action.SKIP_FILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/e096839809948b82660a5d6fd4a66c4a/transformed/profileinstaller-1.3.1/AndroidManifest.xml:43:13-45:29
+action#androidx.profileinstaller.action.SKIP_FILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/e096839809948b82660a5d6fd4a66c4a/transformed/profileinstaller-1.3.1/AndroidManifest.xml:44:17-85
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/e096839809948b82660a5d6fd4a66c4a/transformed/profileinstaller-1.3.1/AndroidManifest.xml:44:25-82
+intent-filter#action:name:androidx.profileinstaller.action.SAVE_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/e096839809948b82660a5d6fd4a66c4a/transformed/profileinstaller-1.3.1/AndroidManifest.xml:46:13-48:29
+action#androidx.profileinstaller.action.SAVE_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/e096839809948b82660a5d6fd4a66c4a/transformed/profileinstaller-1.3.1/AndroidManifest.xml:47:17-88
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/e096839809948b82660a5d6fd4a66c4a/transformed/profileinstaller-1.3.1/AndroidManifest.xml:47:25-85
+intent-filter#action:name:androidx.profileinstaller.action.BENCHMARK_OPERATION
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/e096839809948b82660a5d6fd4a66c4a/transformed/profileinstaller-1.3.1/AndroidManifest.xml:49:13-51:29
+action#androidx.profileinstaller.action.BENCHMARK_OPERATION
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/e096839809948b82660a5d6fd4a66c4a/transformed/profileinstaller-1.3.1/AndroidManifest.xml:50:17-95
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /Users/minkyupark/.gradle/caches/8.11.1/transforms/e096839809948b82660a5d6fd4a66c4a/transformed/profileinstaller-1.3.1/AndroidManifest.xml:50:25-92

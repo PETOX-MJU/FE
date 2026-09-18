@@ -1,0 +1,31 @@
+R_DEF: Internal format may change without notice
+local
+color black
+color petox_green
+color white
+drawable ic_launcher_p
+drawable kakao_logo
+drawable petox_logo
+font memoment_kkukkukk
+mipmap ic_launcher
+mipmap ic_launcher_round
+string app_name
+string email_login_email_hint
+string email_login_error_email
+string email_login_error_password
+string email_login_password_hint
+string email_login_submit
+string email_login_title
+string email_login_to_signup
+string home_logout
+string home_placeholder
+string home_welcome
+string login_email
+string login_kakao
+string login_tagline
+string signup_email_hint
+string signup_nickname_hint
+string signup_password_hint
+string signup_submit
+string signup_subtitle
+style Theme.Petox

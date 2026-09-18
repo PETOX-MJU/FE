@@ -1,0 +1,38 @@
+[
+    {
+        "merged": "/Users/minkyupark/.gradle/daemon/8.11.1/com.petox.app-debug-53:/drawable-nodpi_ic_launcher_p.png.flat",
+        "source": "/Users/minkyupark/.gradle/daemon/8.11.1/com.petox.app-main-55:/drawable-nodpi/ic_launcher_p.png"
+    },
+    {
+        "merged": "/Users/minkyupark/.gradle/daemon/8.11.1/com.petox.app-debug-53:/drawable-nodpi_kakao_logo.png.flat",
+        "source": "/Users/minkyupark/.gradle/daemon/8.11.1/com.petox.app-main-55:/drawable-nodpi/kakao_logo.png"
+    },
+    {
+        "merged": "/Users/minkyupark/.gradle/daemon/8.11.1/com.petox.app-debug-53:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "/Users/minkyupark/.gradle/daemon/8.11.1/com.petox.app-main-55:/mipmap-anydpi-v26/ic_launcher.xml"
+    },
+    {
+        "merged": "/Users/minkyupark/.gradle/daemon/8.11.1/com.petox.app-debug-53:/font_memoment_kkukkukk.ttf.flat",
+        "source": "/Users/minkyupark/.gradle/daemon/8.11.1/com.petox.app-main-55:/font/memoment_kkukkukk.ttf"
+    },
+    {
+        "merged": "/Users/minkyupark/.gradle/daemon/8.11.1/com.petox.app-debug-53:/drawable_ic_launcher_foreground.xml.flat",
+        "source": "/Users/minkyupark/.gradle/daemon/8.11.1/com.petox.app-main-55:/drawable/ic_launcher_foreground.xml"
+    },
+    {
+        "merged": "com.petox.app-debug-53:/drawable-nodpi_petox_logo.png.flat",
+        "source": "com.petox.app-main-55:/drawable-nodpi/petox_logo.png"
+    },
+    {
+        "merged": "com.petox.app-debug-53:/drawable-nodpi_ic_launcher_p.png.flat",
+        "source": "com.petox.app-main-55:/drawable-nodpi/ic_launcher_p.png"
+    },
+    {
+        "merged": "/Users/minkyupark/.gradle/daemon/8.11.1/com.petox.app-debug-53:/drawable-nodpi_petox_logo.png.flat",
+        "source": "/Users/minkyupark/.gradle/daemon/8.11.1/com.petox.app-main-55:/drawable-nodpi/petox_logo.png"
+    },
+    {
+        "merged": "/Users/minkyupark/.gradle/daemon/8.11.1/com.petox.app-debug-53:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "/Users/minkyupark/.gradle/daemon/8.11.1/com.petox.app-main-55:/mipmap-anydpi-v26/ic_launcher_round.xml"
+    }
+]

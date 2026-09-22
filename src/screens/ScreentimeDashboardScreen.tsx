@@ -98,7 +98,7 @@ function WeeklyChart({ width, current, previous, labels }: { width: number; curr
   const previousPath = smoothPath(previous, width, maxValue);
 
   return (
-    <Svg width={width} height={CHART_HEIGHT} accessibilityLabel="지난주와 이번 주 사용 시간 비교 그래프">
+    <Svg width={width} height={CHART_HEIGHT} accessibilityLabel="지난주와 그 전 주 사용 시간 비교 그래프">
       <Defs>
         <LinearGradient id="currentFill" x1="0" y1="0" x2="0" y2="1">
           <Stop offset="0" stopColor={tone.current} stopOpacity="0.85" />
@@ -231,7 +231,7 @@ function AnalysisSections({ dashboard, chartWidth }: { dashboard: DashboardModel
 
         <View style={styles.sectionHeader}>
           <Sticker label="사용 시간" color={tone.usage} />
-          {/* ponytail: 이번 주만 분석한다. 지난 주 이동은 이벤트 보관 기간(수일) 때문에 보류 */}
+          {/* ponytail: 지난 한 주만 리포트한다. 더 이전 주 이동은 이벤트 보관 기간(수일) 때문에 보류 */}
           <View style={styles.weekNav}>
             <Text style={styles.weekArrow}>‹</Text>
             <Text style={styles.period}>{dashboard.periodLabel}</Text>
@@ -239,8 +239,8 @@ function AnalysisSections({ dashboard, chartWidth }: { dashboard: DashboardModel
           </View>
         </View>
         <View style={styles.legendRow}>
-          <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: tone.previous }]} /><Text style={styles.legendText}>지난주 사용 시간</Text></View>
-          <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: tone.current }]} /><Text style={styles.legendText}>이번주 사용 시간</Text></View>
+          <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: tone.previous }]} /><Text style={styles.legendText}>지지난주 사용 시간</Text></View>
+          <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: tone.current }]} /><Text style={styles.legendText}>지난주 사용 시간</Text></View>
         </View>
         <View style={styles.totalRow}>
           <Text style={styles.total}>{dashboard.totalLabel}</Text>

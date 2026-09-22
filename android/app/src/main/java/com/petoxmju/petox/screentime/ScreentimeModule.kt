@@ -60,9 +60,12 @@ class ScreentimeModule(private val context: ReactApplicationContext) : ReactCont
         context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 
-    /** 이번 주(월요일 시작)와 지난주를 분석해 AnalysisOutput JSON 문자열로 돌려준다. */
+    /**
+     * 지난 한 주(끝난 월~일)를 리포트 주로, 그 전 주를 비교 주로 분석해 AnalysisOutput JSON 문자열로 돌려준다.
+     * 진행 중인 이번 주 기록은 다음 리포트에 들어간다.
+     */
     @ReactMethod
-    fun analyzeCurrentWeek(settings: ReadableMap, promise: Promise) {
+    fun analyzeLastWeek(settings: ReadableMap, promise: Promise) {
         thread(name = "petox-screentime") {
             try {
                 promise.resolve(runAnalysis(settings))
@@ -75,7 +78,7 @@ class ScreentimeModule(private val context: ReactApplicationContext) : ReactCont
     private fun runAnalysis(settings: ReadableMap): String {
         val zone = ZoneId.systemDefault()
         val now = System.currentTimeMillis()
-        val weekStart = LocalDate.now(zone).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+        val weekStart = LocalDate.now(zone).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).minusDays(7)
         val previousWeekStart = weekStart.minusDays(7)
         val dailyTargetMs = settings.getInt("dailyTargetMinutes") * MINUTE_MS
         val nightTargetMs = settings.getInt("nightTargetMinutes") * MINUTE_MS

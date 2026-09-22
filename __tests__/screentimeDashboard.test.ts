@@ -61,9 +61,9 @@ test('analysis settings take BE values and fall back to defaults', () => {
   expect(mergeSettings(null, [])).toEqual(DEFAULT_SETTINGS);
 });
 
-test('missing previous week reads as not comparable, not as no change', () => {
+test('missing comparison week reads as not comparable, not as no change', () => {
   const analysis = JSON.parse(JSON.stringify(preview.analysis)) as typeof preview.analysis;
   (analysis.metrics.comparison as { selected_delta_ms: number | null }).selected_delta_ms = null;
 
-  expect(toDashboardModel({ analysis })).toMatchObject({ deltaLabel: '지난주 기록 부족', deltaTone: 'neutral' });
+  expect(toDashboardModel({ analysis })).toMatchObject({ deltaLabel: '비교할 기록 부족', deltaTone: 'neutral' });
 });

@@ -2,7 +2,7 @@ import { NativeModules } from 'react-native';
 import { supabase } from '@/api/supabase';
 import type { AnalysisOutput } from '@/features/screentime/dashboard';
 
-/** 분석 설정. 네이티브 PetoxScreentime.analyzeCurrentWeek 인자와 같은 모양이다. */
+/** 분석 설정. 네이티브 PetoxScreentime.analyzeLastWeek 인자와 같은 모양이다. */
 export type AnalysisSettings = {
   targetPackages: string[];
   weekdayBed: string;
@@ -29,7 +29,7 @@ export const DEFAULT_SETTINGS: AnalysisSettings = {
 type ScreentimeNative = {
   hasUsageAccess(): Promise<boolean>;
   openUsageAccessSettings(): void;
-  analyzeCurrentWeek(settings: AnalysisSettings): Promise<string>;
+  analyzeLastWeek(settings: AnalysisSettings): Promise<string>;
 };
 
 const native: ScreentimeNative | undefined = NativeModules.PetoxScreentime;
@@ -40,7 +40,7 @@ export const screentime = {
   hasUsageAccess: () => native?.hasUsageAccess() ?? Promise.resolve(false),
   openUsageAccessSettings: () => native?.openUsageAccessSettings(),
   analyze: async (settings: AnalysisSettings): Promise<AnalysisOutput> =>
-    JSON.parse(await native!.analyzeCurrentWeek(settings)),
+    JSON.parse(await native!.analyzeLastWeek(settings)),
 };
 
 /** 로그인했으면 BE profiles·user_detected_apps 값을 쓰고, 빈 값은 기본값으로 채운다. */

@@ -47,7 +47,7 @@ export type DeltaTone = 'good' | 'bad' | 'neutral';
 
 /** 전주 대비 증감. null 은 지난주 기록이 부족해 비교할 수 없다는 뜻이다(0 과 다르다). */
 function delta(ms: number | null): { deltaLabel: string; deltaTone: DeltaTone } {
-  if (ms === null) return { deltaLabel: '지난주 기록 부족', deltaTone: 'neutral' };
+  if (ms === null) return { deltaLabel: '비교할 기록 부족', deltaTone: 'neutral' };
   if (ms === 0) return { deltaLabel: '변동 없음', deltaTone: 'neutral' };
   return { deltaLabel: `${ms < 0 ? '▼' : '▲'} ${formatDuration(ms)}`, deltaTone: ms < 0 ? 'good' : 'bad' };
 }

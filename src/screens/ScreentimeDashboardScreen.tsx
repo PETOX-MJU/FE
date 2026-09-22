@@ -8,13 +8,18 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Svg, { Defs, LinearGradient, Line, Path, Polygon, Stop, Text as SvgText } from 'react-native-svg';
 import preview from '@/data/screentimePreview.json';
-import { monthCalendar, toDashboardModel } from '@/features/screentime/dashboard';
-import { ATTENDANCE_KEY } from '@/hooks/useDailyPetReward';
+import { supabase } from '@/api/supabase';
+import {
+  localDateKey,
+  monthCalendar,
+  toDashboardModel,
+  toMissionCards,
+  type MissionRow,
+} from '@/features/screentime/dashboard';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 import { colors } from '@/theme/colors';
 import { petoxColors, petoxFont, petoxLayout, petoxTextBase } from '@/theme/petox';
@@ -24,7 +29,6 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ScreentimeDashboard'>;
 // Figma 대시보드 스티커·그래프 색
 const tone = {
   mission: '#E4C8F9',
-  missionText: '#D29BF2',
   attendance: '#A9DDA2',
   summary: '#F6A19B',
   usage: '#BBD8F7',
@@ -32,6 +36,8 @@ const tone = {
   previous: '#F6B24E',
   divider: '#EEEEEE',
 };
+
+const MISSION_STATUS = { in_progress: '진행 중', completed: '달성', failed: '미달성' } as const;
 
 const CHART_HEIGHT = 200;
 const PAD = { left: 34, right: 8, top: 12, bottom: 28 };
@@ -120,24 +126,60 @@ function WeeklyChart({ width, current, previous, labels }: { width: number; curr
   );
 }
 
-function useAttendance() {
-  const [dates, setDates] = useState<string[]>([]);
+type ServerState =
+  | { status: 'loading' | 'signedOut' | 'error' }
+  | { status: 'ready'; attendance: string[]; missions: ReturnType<typeof toMissionCards> };
+
+// 출석(attendance)·오늘의 미션(user_missions)은 BE 테이블을 RLS 로 직접 읽는다(ADR-002).
+function useServerData(today: Date): ServerState {
+  const [state, setState] = useState<ServerState>({ status: 'loading' });
   useEffect(() => {
-    AsyncStorage.getItem(ATTENDANCE_KEY)
-      .then(saved => setDates(saved ? JSON.parse(saved) : []))
-      .catch(() => setDates([]));
-  }, []);
-  return dates;
+    let alive = true;
+    const set = (next: ServerState) => alive && setState(next);
+    const monthStart = localDateKey(new Date(today.getFullYear(), today.getMonth(), 1));
+    const monthEnd = localDateKey(new Date(today.getFullYear(), today.getMonth() + 1, 0));
+    (async () => {
+      const { data: auth } = await supabase.auth.getSession();
+      if (!auth.session) return set({ status: 'signedOut' });
+      const [attendance, missions] = await Promise.all([
+        supabase.from('attendance').select('attended_on').gte('attended_on', monthStart).lte('attended_on', monthEnd),
+        supabase
+          .from('user_missions')
+          .select('id, status, missions!inner(title)')
+          .eq('missions.type', 'daily')
+          .eq('missions.valid_date', localDateKey(today)),
+      ]);
+      if (attendance.error || missions.error) {
+        console.warn('대시보드 서버 데이터 조회 실패', attendance.error?.message ?? missions.error?.message);
+        return set({ status: 'error' });
+      }
+      set({
+        status: 'ready',
+        attendance: attendance.data.map(row => row.attended_on),
+        missions: toMissionCards(missions.data as unknown as MissionRow[]),
+      });
+    })().catch(() => set({ status: 'error' }));
+    return () => {
+      alive = false;
+    };
+  }, [today]);
+  return state;
 }
+
+const SERVER_MESSAGE = {
+  loading: '불러오는 중이에요',
+  signedOut: '로그인하면 볼 수 있어요',
+  error: '불러오지 못했어요',
+} as const;
 
 export function ScreentimeDashboardScreen({ navigation }: Props) {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const dashboard = useMemo(() => toDashboardModel(preview), []);
-  const attendance = useAttendance();
-  const calendar = useMemo(() => monthCalendar(new Date(), attendance), [attendance]);
+  const [today] = useState(() => new Date());
+  const server = useServerData(today);
+  const calendar = useMemo(() => monthCalendar(today, server.status === 'ready' ? server.attendance : []), [today, server]);
   const chartWidth = width - petoxLayout.screenPadding * 2;
-  const { mission } = dashboard;
 
   return (
     <View style={[styles.safeArea, { paddingTop: insets.top }]}>
@@ -150,20 +192,24 @@ export function ScreentimeDashboardScreen({ navigation }: Props) {
           <Text style={styles.title}>대시보드</Text>
         </View>
 
-        {mission.text && (
-          <>
-            <Sticker label="오늘의 미션" color={tone.mission} />
-            <View style={styles.missionCard}>
-              <Text style={styles.missionLabel}>미션 내용</Text>
-              <Text style={styles.missionText}>{mission.text}</Text>
-              <View style={styles.progressTrack}>
-                <View style={[styles.progressFill, { width: `${mission.ratio * 100}%` }]} />
+        <Sticker label="오늘의 미션" color={tone.mission} />
+        {server.status !== 'ready' ? (
+          <Text style={styles.emptyText}>{SERVER_MESSAGE[server.status]}</Text>
+        ) : server.missions.length === 0 ? (
+          <Text style={styles.emptyText}>오늘 미션이 아직 없어요</Text>
+        ) : (
+          <View style={styles.missionRow}>
+            {server.missions.map(mission => (
+              <View
+                key={mission.id}
+                style={[styles.missionCard, mission.status === 'completed' && styles.missionDone]}
+                accessibilityLabel={`${mission.title}, ${MISSION_STATUS[mission.status]}`}>
+                <Text style={[styles.missionTitle, mission.status === 'failed' && styles.missionFailed]}>{mission.title}</Text>
               </View>
-              <Text style={styles.missionCaption}>{mission.caption}</Text>
-            </View>
-            <Divider />
-          </>
+            ))}
+          </View>
         )}
+        <Divider />
 
         <View style={styles.sectionHeader}>
           <Sticker label="출석 체크" color={tone.attendance} />
@@ -180,6 +226,7 @@ export function ScreentimeDashboardScreen({ navigation }: Props) {
             </View>
           ))}
         </View>
+        {server.status !== 'ready' && <Text style={styles.emptyText}>{SERVER_MESSAGE[server.status]}</Text>}
         <Divider />
 
         {dashboard.summary && (
@@ -243,12 +290,13 @@ const styles = StyleSheet.create({
   stickerText: { ...petoxTextBase, fontSize: 15, color: petoxColors.black },
   divider: { height: 1, backgroundColor: tone.divider, marginVertical: 22 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  missionCard: { marginTop: 16, padding: 20, borderRadius: 16, backgroundColor: petoxColors.white, borderWidth: 1, borderColor: tone.divider, shadowColor: petoxColors.black, shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 3 },
-  missionLabel: { ...petoxTextBase, fontSize: 15, color: petoxColors.text },
-  missionText: { ...petoxTextBase, fontSize: 15, color: tone.missionText, marginTop: 14 },
-  progressTrack: { height: 7, borderRadius: 4, backgroundColor: petoxColors.black, marginTop: 16, overflow: 'hidden' },
-  progressFill: { height: '100%', borderRadius: 4, backgroundColor: tone.mission },
-  missionCaption: { ...petoxTextBase, fontSize: 12, color: petoxColors.hint, marginTop: 8, textAlign: 'right' },
+  missionRow: { flexDirection: 'row', gap: 10, marginTop: 16 },
+  // Figma: 진행 중은 흰 카드+검은 테두리, 달성은 보라 채움
+  missionCard: { flex: 1, minHeight: 120, borderRadius: 14, borderWidth: 1.5, borderColor: petoxColors.black, backgroundColor: petoxColors.white, alignItems: 'center', justifyContent: 'center', padding: 10 },
+  missionDone: { backgroundColor: tone.mission, borderColor: tone.mission },
+  missionTitle: { ...petoxTextBase, fontSize: 14, lineHeight: 20, color: petoxColors.text, textAlign: 'center' },
+  missionFailed: { color: petoxColors.hint },
+  emptyText: { ...petoxTextBase, fontSize: 14, color: petoxColors.hint, textAlign: 'center', marginTop: 16 },
   month: { ...petoxTextBase, fontSize: 16, color: petoxColors.hint },
   calendar: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 12 },
   calendarCell: { width: `${100 / 7}%`, height: 36, alignItems: 'center', justifyContent: 'center' },

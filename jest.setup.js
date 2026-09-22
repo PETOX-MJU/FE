@@ -19,3 +19,15 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   getItem: jest.fn(async () => null),
   setItem: jest.fn(async () => undefined),
 }));
+
+// 테스트에서는 로그인하지 않은 상태로 본다(네트워크 호출 없음).
+jest.mock('@/api/supabase', () => ({
+  supabase: {
+    auth: {
+      getSession: jest.fn(async () => ({ data: { session: null } })),
+      onAuthStateChange: jest.fn(() => ({ data: { subscription: { unsubscribe: jest.fn() } } })),
+    },
+    rpc: jest.fn(),
+    from: jest.fn(),
+  },
+}));

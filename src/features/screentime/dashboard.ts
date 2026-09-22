@@ -12,7 +12,6 @@ type AnalysisApp = {
 
 type AnalysisOutput = {
   insights: Array<{ code: string; text: string }>;
-  mission_results: Array<{ mission_id: string; status: string }>;
   metrics: {
     selected_total_ms: number | null;
     per_day: AnalysisDay[];
@@ -25,7 +24,6 @@ type AnalysisOutput = {
 // dashboard-api-spec.md 3.4 DashboardUiState 중 화면이 쓰는 부분
 type DashboardInput = {
   analysis: AnalysisOutput;
-  active_targets: { daily_target_ms: number | null };
 };
 
 const APP_META: Record<string, { name: string; color: string; initial: string }> = {
@@ -88,17 +86,15 @@ export function monthCalendar(today: Date, attended: string[]) {
   return { monthName: MONTHS[month], cells: [...Array(leading).fill(null), ...days] as Array<(typeof days)[number] | null> };
 }
 
-function missionModel(input: DashboardInput) {
-  const statuses = input.analysis.mission_results.map(result => result.status);
-  const succeeded = statuses.filter(status => status === 'succeeded').length;
-  // unknown·in_progress·not_applicable 은 분모에서 뺀다 (명세 4.5).
-  const evaluable = succeeded + statuses.filter(status => status === 'failed').length;
-  const target = input.active_targets.daily_target_ms;
-  return {
-    text: target === null ? null : `줄이고 싶은 앱 하루 ${formatDuration(target)} 이하로 쓰기`,
-    ratio: evaluable ? succeeded / evaluable : 0,
-    caption: evaluable ? `이번 주 ${succeeded}/${evaluable}일 달성` : '판정 가능한 미션이 없어요',
-  };
+export type MissionStatus = 'in_progress' | 'completed' | 'failed';
+
+/** Supabase user_missions + missions 조회 결과 한 행 */
+export type MissionRow = { id: string; status: MissionStatus; missions: { title: string } | null };
+
+export function toMissionCards(rows: MissionRow[]) {
+  return rows
+    .filter(row => row.missions)
+    .map(row => ({ id: row.id, title: keepWords(row.missions!.title), status: row.status }));
 }
 
 function shortDate(value: string): string {
@@ -118,7 +114,6 @@ export function toDashboardModel(input: DashboardInput) {
     improved: deltaMs !== null && deltaMs < 0,
     // 명세 4.6: insights[0].text 를 그대로 쓰고, 비어 있으면 요약을 숨긴다.
     summary: output.insights[0] ? keepWords(output.insights[0].text) : null,
-    mission: missionModel(input),
     periodLabel:
       currentDays.length > 0
         ? `${shortDate(currentDays[0].date)} ~ ${shortDate(currentDays[currentDays.length - 1].date)}`

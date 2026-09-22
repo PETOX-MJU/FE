@@ -1,8 +1,4 @@
 {
-  "active_targets": {
-    "daily_target_ms": 9000000,
-    "night_target_ms": 2700000
-  },
   "analysis": {
     "insights": [
       {
@@ -24,17 +20,6 @@
         },
         "source": "template",
         "text": "취침 전후로 가장 오래 사용한 앱은 com.google.android.youtube이고 91분입니다. 야간 사용의 50.0%입니다."
-      },
-      {
-        "code": "DAILY_NIGHT_DIFFERENCE",
-        "evidence": {
-          "daily_evaluable_count": 7,
-          "daily_success_count": 3,
-          "night_evaluable_count": 0,
-          "night_success_count": 0
-        },
-        "source": "template",
-        "text": "이번 주 판정 결과는 일일 7개 중 3개 달성, 야간 판정 가능한 미션 없음입니다."
       }
     ],
     "metrics": {
@@ -47,8 +32,8 @@
         "selected_delta_ms": -5640000,
         "selected_delta_pct": -8.12
       },
-      "daily_evaluable_count": 7,
-      "daily_success_count": 3,
+      "daily_evaluable_count": 0,
+      "daily_success_count": 0,
       "night_evaluable_count": 0,
       "night_success_count": 0,
       "per_app": [
@@ -234,50 +219,7 @@
       "valid_days": 7,
       "valid_nights": 7
     },
-    "mission_results": [
-      {
-        "evaluated_at_ms": 1789945260000,
-        "mission_id": "daily-2026-09-14",
-        "observed_ms": 8220000,
-        "status": "succeeded"
-      },
-      {
-        "evaluated_at_ms": 1789945260000,
-        "mission_id": "daily-2026-09-15",
-        "observed_ms": 8760000,
-        "status": "succeeded"
-      },
-      {
-        "evaluated_at_ms": 1789945260000,
-        "mission_id": "daily-2026-09-16",
-        "observed_ms": 9060000,
-        "status": "failed"
-      },
-      {
-        "evaluated_at_ms": 1789945260000,
-        "mission_id": "daily-2026-09-17",
-        "observed_ms": 9240000,
-        "status": "failed"
-      },
-      {
-        "evaluated_at_ms": 1789945260000,
-        "mission_id": "daily-2026-09-18",
-        "observed_ms": 8880000,
-        "status": "succeeded"
-      },
-      {
-        "evaluated_at_ms": 1789945260000,
-        "mission_id": "daily-2026-09-19",
-        "observed_ms": 10560000,
-        "status": "failed"
-      },
-      {
-        "evaluated_at_ms": 1789945260000,
-        "mission_id": "daily-2026-09-20",
-        "observed_ms": 9120000,
-        "status": "failed"
-      }
-    ],
+    "mission_results": [],
     "proposals": [
       {
         "basis_week": "2026-09-14",
@@ -285,7 +227,7 @@
         "profile_version": 1,
         "reason_code": "MAINTAIN_INSUFFICIENT_SUCCESS",
         "rules_version": "2026-09-10.1",
-        "target_ms": 9000000
+        "target_ms": 10800000
       },
       {
         "basis_week": "2026-09-14",

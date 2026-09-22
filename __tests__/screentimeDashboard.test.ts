@@ -1,5 +1,6 @@
-import preview from '../src/data/screentimePreview.json';
+import preview from './fixtures/screentimePreview.json';
 import { keepWords, monthCalendar, toDashboardModel, toMissionCards } from '../src/features/screentime/dashboard';
+import { DEFAULT_SETTINGS, mergeSettings } from '../src/features/screentime/onDevice';
 
 test('derives dashboard values from analysis output', () => {
   const dashboard = toDashboardModel(preview);
@@ -36,4 +37,26 @@ test('maps server mission rows to cards and skips rows without a mission', () =>
   ]);
 
   expect(cards).toEqual([{ id: 'a', title: keepWords('오늘 펫 2회 이하로 보기'), status: 'completed' }]);
+});
+
+test('unknown days and totals stay unknown instead of becoming 0', () => {
+  const analysis = JSON.parse(JSON.stringify(preview.analysis)) as typeof preview.analysis;
+  (analysis.metrics.per_day[6] as { selected_ms: number | null }).selected_ms = null;
+  (analysis.metrics as { selected_total_ms: number | null }).selected_total_ms = null;
+
+  const dashboard = toDashboardModel({ analysis });
+
+  expect(dashboard.currentDays[6].minutes).toBeNull();
+  expect(dashboard.totalLabel).toBe('확인 불가');
+});
+
+test('analysis settings take BE values and fall back to defaults', () => {
+  expect(mergeSettings({ goal_minutes: 90, bedtime: '23:30:00' }, ['com.instagram.android'])).toEqual({
+    ...DEFAULT_SETTINGS,
+    targetPackages: ['com.instagram.android'],
+    weekdayBed: '23:30',
+    weekendBed: '23:30',
+    dailyTargetMinutes: 90,
+  });
+  expect(mergeSettings(null, [])).toEqual(DEFAULT_SETTINGS);
 });

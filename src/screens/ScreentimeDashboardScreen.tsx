@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  AppState,
   Pressable,
   ScrollView,
   StatusBar,
@@ -11,15 +12,16 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Svg, { Defs, LinearGradient, Line, Path, Polygon, Stop, Text as SvgText } from 'react-native-svg';
-import preview from '@/data/screentimePreview.json';
 import { supabase } from '@/api/supabase';
 import {
   localDateKey,
   monthCalendar,
   toDashboardModel,
   toMissionCards,
+  type DashboardModel,
   type MissionRow,
 } from '@/features/screentime/dashboard';
+import { loadAnalysisSettings, screentime } from '@/features/screentime/onDevice';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 import { colors } from '@/theme/colors';
 import { petoxColors, petoxFont, petoxLayout, petoxTextBase } from '@/theme/petox';
@@ -65,13 +67,15 @@ function Divider() {
 }
 
 // Catmull-Rom 을 3차 베지어로 바꿔 점들을 부드럽게 잇는다.
-function smoothPath(values: number[], width: number, maxValue: number) {
-  const chartWidth = width - PAD.left - PAD.right;
-  const baseline = CHART_HEIGHT - PAD.bottom;
-  const points = values.map((value, index) => ({
-    x: PAD.left + (chartWidth * index) / Math.max(values.length - 1, 1),
-    y: baseline - (value / maxValue) * (baseline - PAD.top),
-  }));
+const BASELINE = CHART_HEIGHT - PAD.bottom;
+const xAt = (index: number, width: number) => PAD.left + ((width - PAD.left - PAD.right) * index) / 6;
+
+// 확인 불가(null) 인 날은 점을 찍지 않는다.
+function smoothPath(values: Array<number | null>, width: number, maxValue: number) {
+  const baseline = BASELINE;
+  const points = values.flatMap((value, index) =>
+    value === null ? [] : [{ x: xAt(index, width), y: baseline - (value / maxValue) * (baseline - PAD.top) }],
+  );
   if (!points.length) return { points, line: '', area: '', baseline };
   let line = `M ${points[0].x} ${points[0].y}`;
   for (let i = 0; i < points.length - 1; i++) {
@@ -85,8 +89,11 @@ function smoothPath(values: number[], width: number, maxValue: number) {
   return { points, line, area, baseline };
 }
 
-function WeeklyChart({ width, current, previous, labels }: { width: number; current: number[]; previous: number[]; labels: string[] }) {
-  const maxValue = Math.max(...current, ...previous, 1) * 1.15;
+type Series = Array<number | null>;
+
+function WeeklyChart({ width, current, previous, labels }: { width: number; current: Series; previous: Series; labels: string[] }) {
+  const known = [...current, ...previous].filter((value): value is number => value !== null);
+  const maxValue = Math.max(...known, 1) * 1.15;
   const currentPath = smoothPath(current, width, maxValue);
   const previousPath = smoothPath(previous, width, maxValue);
 
@@ -103,7 +110,7 @@ function WeeklyChart({ width, current, previous, labels }: { width: number; curr
         </LinearGradient>
       </Defs>
       {[0, 0.5, 1].map(ratio => {
-        const y = PAD.top + (currentPath.baseline - PAD.top) * ratio;
+        const y = PAD.top + (BASELINE - PAD.top) * ratio;
         return (
           <React.Fragment key={ratio}>
             <Line x1={PAD.left} y1={y} x2={width - PAD.right} y2={y} stroke={tone.divider} />
@@ -118,7 +125,7 @@ function WeeklyChart({ width, current, previous, labels }: { width: number; curr
       <Path d={currentPath.area} fill="url(#currentFill)" />
       <Path d={currentPath.line} fill="none" stroke={tone.current} strokeWidth="1.5" />
       {labels.map((label, index) => (
-        <SvgText key={index} x={currentPath.points[index]?.x ?? 0} y={CHART_HEIGHT - 6} textAnchor="middle" fontSize="12" fontFamily={petoxFont} fill={petoxColors.hint}>
+        <SvgText key={index} x={xAt(index, width)} y={CHART_HEIGHT - 6} textAnchor="middle" fontSize="12" fontFamily={petoxFont} fill={petoxColors.hint}>
           {label}
         </SvgText>
       ))}
@@ -166,16 +173,106 @@ function useServerData(today: Date): ServerState {
   return state;
 }
 
+type AnalysisState =
+  | { status: 'loading' | 'needsPermission' | 'unsupported' | 'error' }
+  | { status: 'ready'; dashboard: DashboardModel };
+
+// 사용 기록은 폰 안에서 모아 Kotlin 분석기로 분석한다. 서버로 보내지 않는다.
+function useOnDeviceAnalysis(): AnalysisState {
+  const [state, setState] = useState<AnalysisState>({ status: 'loading' });
+  useEffect(() => {
+    let alive = true;
+    const set = (next: AnalysisState) => alive && setState(next);
+    const run = async () => {
+      if (!screentime.available) return set({ status: 'unsupported' });
+      if (!(await screentime.hasUsageAccess())) return set({ status: 'needsPermission' });
+      const output = await screentime.analyze(await loadAnalysisSettings());
+      set({ status: 'ready', dashboard: toDashboardModel({ analysis: output }) });
+    };
+    const refresh = () =>
+      run().catch(error => {
+        console.warn('스크린타임 분석 실패', error);
+        set({ status: 'error' });
+      });
+    refresh();
+    // 설정에서 사용 정보 접근을 허용하고 돌아오면 다시 분석한다.
+    const sub = AppState.addEventListener('change', next => next === 'active' && refresh());
+    return () => {
+      alive = false;
+      sub.remove();
+    };
+  }, []);
+  return state;
+}
+
+const ANALYSIS_MESSAGE = {
+  loading: '사용 기록을 분석하는 중이에요',
+  needsPermission: '사용 시간을 보려면 사용 정보 접근을 허용해 주세요',
+  unsupported: '이 기기에서는 사용 시간을 분석할 수 없어요',
+  error: '사용 시간을 분석하지 못했어요',
+} as const;
+
 const SERVER_MESSAGE = {
   loading: '불러오는 중이에요',
   signedOut: '로그인하면 볼 수 있어요',
   error: '불러오지 못했어요',
 } as const;
 
+function AnalysisSections({ dashboard, chartWidth }: { dashboard: DashboardModel; chartWidth: number }) {
+  return (
+    <>
+        {dashboard.summary && (
+          <>
+            <Sticker label="한줄 요약" color={tone.summary} />
+            <Text style={styles.summaryText}>“{dashboard.summary}”</Text>
+            <Divider />
+          </>
+        )}
+
+        <View style={styles.sectionHeader}>
+          <Sticker label="사용 시간" color={tone.usage} />
+          {/* ponytail: 이번 주만 분석한다. 지난 주 이동은 이벤트 보관 기간(수일) 때문에 보류 */}
+          <View style={styles.weekNav}>
+            <Text style={styles.weekArrow}>‹</Text>
+            <Text style={styles.period}>{dashboard.periodLabel}</Text>
+            <Text style={styles.weekArrow}>›</Text>
+          </View>
+        </View>
+        <View style={styles.legendRow}>
+          <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: tone.previous }]} /><Text style={styles.legendText}>지난주 사용 시간</Text></View>
+          <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: tone.current }]} /><Text style={styles.legendText}>이번주 사용 시간</Text></View>
+        </View>
+        <View style={styles.totalRow}>
+          <Text style={styles.total}>{dashboard.totalLabel}</Text>
+          <Text style={[styles.delta, dashboard.improved ? styles.goodText : styles.badText]}>{dashboard.deltaLabel}</Text>
+        </View>
+        <WeeklyChart
+          width={chartWidth}
+          current={dashboard.currentDays.map(day => day.minutes)}
+          previous={dashboard.previousDays.map(day => day.minutes)}
+          labels={dashboard.currentDays.map(day => day.label)}
+        />
+        <Divider />
+
+        <Text style={styles.appsTitle}>앱별 사용 시간</Text>
+        {dashboard.apps.map((app, index) => (
+          <View key={app.packageName} style={[styles.appRow, index < dashboard.apps.length - 1 && styles.appDivider]}>
+            <View style={[styles.appIcon, { backgroundColor: app.color }]}><Text style={styles.appInitial}>{app.initial}</Text></View>
+            <View style={styles.appNameWrap}>
+              <Text style={styles.appName}>{app.name}</Text>
+              <Text style={styles.appUsage}>{app.usageLabel}</Text>
+            </View>
+            <Text style={[styles.appDelta, app.improved ? styles.goodText : styles.badText]}>{app.deltaLabel}</Text>
+          </View>
+        ))}
+    </>
+  );
+}
+
 export function ScreentimeDashboardScreen({ navigation }: Props) {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const dashboard = useMemo(() => toDashboardModel(preview), []);
+  const analysis = useOnDeviceAnalysis();
   const [today] = useState(() => new Date());
   const server = useServerData(today);
   const calendar = useMemo(() => monthCalendar(today, server.status === 'ready' ? server.attendance : []), [today, server]);
@@ -229,51 +326,18 @@ export function ScreentimeDashboardScreen({ navigation }: Props) {
         {server.status !== 'ready' && <Text style={styles.emptyText}>{SERVER_MESSAGE[server.status]}</Text>}
         <Divider />
 
-        {dashboard.summary && (
-          <>
-            <Sticker label="한줄 요약" color={tone.summary} />
-            <Text style={styles.summaryText}>“{dashboard.summary}”</Text>
-            <Divider />
-          </>
+        {analysis.status === 'ready' ? (
+          <AnalysisSections dashboard={analysis.dashboard} chartWidth={chartWidth} />
+        ) : (
+          <View style={styles.analysisEmpty}>
+            <Text style={styles.emptyText}>{ANALYSIS_MESSAGE[analysis.status]}</Text>
+            {analysis.status === 'needsPermission' && (
+              <Pressable style={styles.permissionButton} onPress={screentime.openUsageAccessSettings} accessibilityRole="button">
+                <Text style={styles.permissionText}>사용 정보 접근 허용하기</Text>
+              </Pressable>
+            )}
+          </View>
         )}
-
-        <View style={styles.sectionHeader}>
-          <Sticker label="사용 시간" color={tone.usage} />
-          {/* ponytail: 샘플 분석 결과가 한 주뿐이라 주 이동은 비활성. 주별 결과가 붙으면 연결 */}
-          <View style={styles.weekNav}>
-            <Text style={styles.weekArrow}>‹</Text>
-            <Text style={styles.period}>{dashboard.periodLabel}</Text>
-            <Text style={styles.weekArrow}>›</Text>
-          </View>
-        </View>
-        <View style={styles.legendRow}>
-          <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: tone.previous }]} /><Text style={styles.legendText}>지난주 사용 시간</Text></View>
-          <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: tone.current }]} /><Text style={styles.legendText}>이번주 사용 시간</Text></View>
-        </View>
-        <View style={styles.totalRow}>
-          <Text style={styles.total}>{dashboard.totalLabel}</Text>
-          <Text style={[styles.delta, dashboard.improved ? styles.goodText : styles.badText]}>{dashboard.deltaLabel}</Text>
-        </View>
-        <WeeklyChart
-          width={chartWidth}
-          current={dashboard.currentDays.map(day => day.minutes)}
-          previous={dashboard.previousDays.map(day => day.minutes)}
-          labels={dashboard.currentDays.map(day => day.label)}
-        />
-        <Divider />
-
-        <Text style={styles.appsTitle}>앱별 사용 시간</Text>
-        {dashboard.apps.map((app, index) => (
-          <View key={app.packageName} style={[styles.appRow, index < dashboard.apps.length - 1 && styles.appDivider]}>
-            <View style={[styles.appIcon, { backgroundColor: app.color }]}><Text style={styles.appInitial}>{app.initial}</Text></View>
-            <View style={styles.appNameWrap}>
-              <Text style={styles.appName}>{app.name}</Text>
-              <Text style={styles.appUsage}>{app.usageLabel}</Text>
-            </View>
-            <Text style={[styles.appDelta, app.improved ? styles.goodText : styles.badText]}>{app.deltaLabel}</Text>
-          </View>
-        ))}
-        <Text style={styles.sourceNote}>샘플 사용 기록을 실제 분석 코드로 계산한 결과입니다.</Text>
       </ScrollView>
     </View>
   );
@@ -326,5 +390,7 @@ const styles = StyleSheet.create({
   appName: { ...petoxTextBase, color: petoxColors.text, fontSize: 16 },
   appUsage: { ...petoxTextBase, color: petoxColors.hint, fontSize: 13, marginTop: 3 },
   appDelta: { ...petoxTextBase, fontSize: 14 },
-  sourceNote: { ...petoxTextBase, textAlign: 'center', color: petoxColors.hint, fontSize: 11, marginTop: 22 },
+  analysisEmpty: { alignItems: 'center', paddingVertical: 12 },
+  permissionButton: { marginTop: 14, height: petoxLayout.buttonHeight, paddingHorizontal: 22, borderRadius: petoxLayout.buttonRadius, backgroundColor: petoxColors.black, justifyContent: 'center' },
+  permissionText: { ...petoxTextBase, fontSize: 15, color: petoxColors.white },
 });

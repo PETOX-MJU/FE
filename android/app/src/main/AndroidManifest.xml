@@ -1,6 +1,17 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 스크린타임 분석: 사용자가 설정 > 사용 정보 접근에서 직접 허용한다 -->
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" tools:ignore="ProtectedPermissions" />
+
+    <!-- 홈 런처를 사용량에서 빼려고 기본 홈 앱만 조회한다 (QUERY_ALL_PACKAGES 는 쓰지 않는다) -->
+    <queries>
+      <intent>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.HOME" />
+      </intent>
+    </queries>
 
     <application
       android:name=".MainApplication"

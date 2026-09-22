@@ -10,7 +10,7 @@ type AnalysisApp = {
   delta_ms: number | null;
 };
 
-type AnalysisOutput = {
+export type AnalysisOutput = {
   insights: Array<{ code: string; text: string }>;
   metrics: {
     selected_total_ms: number | null;
@@ -53,7 +53,8 @@ function dayModel(day: AnalysisDay) {
   return {
     date: day.date,
     label: WEEKDAYS[date.getUTCDay()],
-    minutes: Math.round((day.selected_ms ?? 0) / 60_000),
+    // 확인 불가(null) 인 날은 0 으로 그리지 않는다 (명세: 누락일을 0 막대로 표현하지 않음)
+    minutes: day.selected_ms === null ? null : Math.round(day.selected_ms / 60_000),
   };
 }
 
@@ -109,7 +110,8 @@ export function toDashboardModel(input: DashboardInput) {
   const deltaMs = output.metrics.comparison.selected_delta_ms;
 
   return {
-    totalLabel: formatDuration(output.metrics.selected_total_ms ?? 0),
+    totalLabel:
+      output.metrics.selected_total_ms === null ? '확인 불가' : formatDuration(output.metrics.selected_total_ms),
     deltaLabel: formatDelta(deltaMs),
     improved: deltaMs !== null && deltaMs < 0,
     // 명세 4.6: insights[0].text 를 그대로 쓰고, 비어 있으면 요약을 숨긴다.
@@ -131,7 +133,7 @@ export function toDashboardModel(input: DashboardInput) {
         return {
           ...meta,
           packageName: app.package_name,
-          usageLabel: formatDuration(app.total_ms ?? 0),
+          usageLabel: app.total_ms === null ? '확인 불가' : formatDuration(app.total_ms),
           deltaLabel: formatDelta(app.delta_ms),
           improved: app.delta_ms !== null && app.delta_ms < 0,
         };

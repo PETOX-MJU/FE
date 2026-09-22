@@ -116,6 +116,7 @@ dependencies {
     implementation("com.facebook.react:react-android")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+    testImplementation("junit:junit:4.13.2")
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")

@@ -43,9 +43,13 @@ export function formatDuration(ms: number): string {
   return `${hours}시간 ${minutes}분`;
 }
 
-function formatDelta(ms: number | null): string {
-  if (ms === null || ms === 0) return '– 변동 없음';
-  return `${ms < 0 ? '▼' : '▲'} ${formatDuration(ms)}`;
+export type DeltaTone = 'good' | 'bad' | 'neutral';
+
+/** 전주 대비 증감. null 은 지난주 기록이 부족해 비교할 수 없다는 뜻이다(0 과 다르다). */
+function delta(ms: number | null): { deltaLabel: string; deltaTone: DeltaTone } {
+  if (ms === null) return { deltaLabel: '지난주 기록 부족', deltaTone: 'neutral' };
+  if (ms === 0) return { deltaLabel: '변동 없음', deltaTone: 'neutral' };
+  return { deltaLabel: `${ms < 0 ? '▼' : '▲'} ${formatDuration(ms)}`, deltaTone: ms < 0 ? 'good' : 'bad' };
 }
 
 function dayModel(day: AnalysisDay) {
@@ -112,8 +116,7 @@ export function toDashboardModel(input: DashboardInput) {
   return {
     totalLabel:
       output.metrics.selected_total_ms === null ? '확인 불가' : formatDuration(output.metrics.selected_total_ms),
-    deltaLabel: formatDelta(deltaMs),
-    improved: deltaMs !== null && deltaMs < 0,
+    ...delta(deltaMs),
     // 명세 4.6: insights[0].text 를 그대로 쓰고, 비어 있으면 요약을 숨긴다.
     summary: output.insights[0] ? keepWords(output.insights[0].text) : null,
     periodLabel:
@@ -134,8 +137,7 @@ export function toDashboardModel(input: DashboardInput) {
           ...meta,
           packageName: app.package_name,
           usageLabel: app.total_ms === null ? '확인 불가' : formatDuration(app.total_ms),
-          deltaLabel: formatDelta(app.delta_ms),
-          improved: app.delta_ms !== null && app.delta_ms < 0,
+          ...delta(app.delta_ms),
         };
       }),
   };

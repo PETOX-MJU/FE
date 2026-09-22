@@ -98,16 +98,15 @@ class ScreentimeModule(private val context: ReactApplicationContext) : ReactCont
         // 첫 구간의 시작 상태(화면·잠금·전경 앱)를 되짚도록 하루 앞부터 조회한다.
         val queryStart = dailyWindow(anchors.first(), profile).startMs - DAY_MS
         val events = readEvents(queryStart, now)
-        val perApp = UsageIntervals.perApp(events, now, excludedPackages())
+        val collected = UsageIntervals.collect(events, now, excludedPackages())
         val dataFrom = events.minOfOrNull { it.timeMs }
-
         val aggregates = anchors.flatMap { day ->
             val (preBed, afterBed) = nightWindows(day, profile)
             listOf(
                 WindowKind.DAILY to dailyWindow(day, profile),
                 WindowKind.PRE_BED to preBed,
                 WindowKind.AFTER_BED to afterBed,
-            ).mapNotNull { (kind, window) -> aggregate(day, kind, window, perApp, now, dataFrom) }
+            ).mapNotNull { (kind, window) -> aggregate(day, kind, window, collected, now, dataFrom) }
         }
 
         val input = AnalysisInput(
@@ -127,11 +126,11 @@ class ScreentimeModule(private val context: ReactApplicationContext) : ReactCont
         day: LocalDate,
         kind: WindowKind,
         window: Window,
-        perApp: Map<String, List<Span>>,
+        collected: Collected,
         now: Long,
         dataFrom: Long?,
     ): WindowAggregate? {
-        val usage = UsageIntervals.windowUsage(perApp, window, now, dataFrom) ?: return null
+        val usage = UsageIntervals.windowUsage(collected, window, now, dataFrom) ?: return null
         return WindowAggregate(
             anchorDate = day,
             kind = kind,
@@ -161,6 +160,7 @@ class ScreentimeModule(private val context: ReactApplicationContext) : ReactCont
                 17 -> EventType.KEYGUARD_SHOWN
                 18 -> EventType.KEYGUARD_HIDDEN
                 26 -> EventType.SHUTDOWN // DEVICE_SHUTDOWN
+                27 -> EventType.STARTUP // DEVICE_STARTUP
                 else -> null
             } ?: continue
             out.add(UsageEvent(event.timeStamp, type, event.packageName ?: "", event.className ?: ""))

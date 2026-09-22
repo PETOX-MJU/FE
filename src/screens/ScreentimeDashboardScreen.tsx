@@ -244,7 +244,7 @@ function AnalysisSections({ dashboard, chartWidth }: { dashboard: DashboardModel
         </View>
         <View style={styles.totalRow}>
           <Text style={styles.total}>{dashboard.totalLabel}</Text>
-          <Text style={[styles.delta, dashboard.improved ? styles.goodText : styles.badText]}>{dashboard.deltaLabel}</Text>
+          <Text style={[styles.delta, TONE_STYLE[dashboard.deltaTone]]}>{dashboard.deltaLabel}</Text>
         </View>
         <WeeklyChart
           width={chartWidth}
@@ -262,7 +262,7 @@ function AnalysisSections({ dashboard, chartWidth }: { dashboard: DashboardModel
               <Text style={styles.appName}>{app.name}</Text>
               <Text style={styles.appUsage}>{app.usageLabel}</Text>
             </View>
-            <Text style={[styles.appDelta, app.improved ? styles.goodText : styles.badText]}>{app.deltaLabel}</Text>
+            <Text style={[styles.appDelta, TONE_STYLE[app.deltaTone]]}>{app.deltaLabel}</Text>
           </View>
         ))}
     </>
@@ -381,6 +381,7 @@ const styles = StyleSheet.create({
   delta: { ...petoxTextBase, fontSize: 14 },
   goodText: { color: petoxColors.greenDark },
   badText: { color: colors.heart },
+  neutralText: { color: petoxColors.hint },
   appsTitle: { ...petoxTextBase, fontSize: 17, color: petoxColors.text, marginBottom: 4 },
   appRow: { minHeight: 72, flexDirection: 'row', alignItems: 'center' },
   appDivider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: petoxColors.line },
@@ -394,3 +395,5 @@ const styles = StyleSheet.create({
   permissionButton: { marginTop: 14, height: petoxLayout.buttonHeight, paddingHorizontal: 22, borderRadius: petoxLayout.buttonRadius, backgroundColor: petoxColors.black, justifyContent: 'center' },
   permissionText: { ...petoxTextBase, fontSize: 15, color: petoxColors.white },
 });
+
+const TONE_STYLE = { good: styles.goodText, bad: styles.badText, neutral: styles.neutralText };

@@ -8,7 +8,7 @@ import com.petox.screentime.Window
  * UsageStatsManager 이벤트를 앱별 전경 사용 구간으로 바꾸는 순수 로직.
  * Android API 에 의존하지 않아 JVM 테스트로 검증한다 (android-data-contract.md 2~3절).
  */
-enum class EventType { RESUMED, PAUSED, SCREEN_ON, SCREEN_OFF, KEYGUARD_SHOWN, KEYGUARD_HIDDEN, SHUTDOWN }
+enum class EventType { RESUMED, PAUSED, SCREEN_ON, SCREEN_OFF, KEYGUARD_SHOWN, KEYGUARD_HIDDEN, SHUTDOWN, STARTUP }
 
 data class UsageEvent(
     val timeMs: Long,
@@ -22,16 +22,26 @@ data class Span(val start: Long, val end: Long)
 
 data class WindowUsage(val quality: Quality, val observedUntilMs: Long, val apps: List<AppDuration>?)
 
+/** 앱별 사용 구간과, 기기 상태를 알 수 없는 공백 구간 */
+data class Collected(val perApp: Map<String, List<Span>>, val gaps: List<Span>)
+
+// ponytail: 화면이 켜진 채 이벤트가 이만큼 끊기면 기기가 멈췄던 것으로 본다(스냅샷·강제 종료 등).
+// 화면을 켠 채 영상을 몇 시간 보는 경우까지는 정상으로 둔다. 실기기 데이터로 조정할 값.
+const val SILENT_GAP_MS = 4 * 60 * 60 * 1000L
+
 object UsageIntervals {
     /**
      * 앱별 사용 구간(합집합) 중 "화면 켜짐 + 잠금 해제" 인 부분만 남긴다.
      * - 같은 앱의 Activity A/B 가 겹쳐도 한 번만 센다 (F13)
      * - 잠금·화면 꺼짐 동안은 전경 앱이 남아 있어도 제외한다 (F22)
      * - 시작 이벤트 없이 끝난 구간은 앞으로 늘리지 않는다 (F15)
+     * - 끝 이벤트를 놓친 구간(다시 RESUMED 가 오거나 재부팅)은 끝을 모르므로 세지 않는다 (F15)
      */
-    fun perApp(events: List<UsageEvent>, queryEndMs: Long, excluded: Set<String>): Map<String, List<Span>> {
+    fun collect(events: List<UsageEvent>, queryEndMs: Long, excluded: Set<String>): Collected {
         val sorted = events.sortedBy { it.timeMs }
-        val usable = usableSpans(sorted, queryEndMs)
+        val screenOn = usableSpans(sorted, queryEndMs)
+        val gaps = silentGaps(sorted, screenOn)
+        val usable = subtract(screenOn, gaps)
 
         val open = HashMap<Pair<String, String>, Long>()
         val raw = HashMap<String, MutableList<Span>>()
@@ -41,34 +51,55 @@ object UsageIntervals {
         }
         for (event in sorted) {
             when (event.type) {
+                // 이미 열려 있으면 PAUSED 를 놓친 것이다. 이전 시작 시각을 이어 쓰면 며칠짜리 구간이 된다.
                 EventType.RESUMED -> if (event.packageName !in excluded) {
-                    open.putIfAbsent(event.packageName to event.activity, event.timeMs)
+                    open[event.packageName to event.activity] = event.timeMs
                 }
                 EventType.PAUSED -> close(event.packageName to event.activity, event.timeMs)
                 EventType.SHUTDOWN -> open.keys.toList().forEach { close(it, event.timeMs) }
+                // 종료 이벤트 없이 부팅됐다(강제 종료 등). 열린 구간의 끝을 모르므로 버린다.
+                EventType.STARTUP -> open.clear()
                 else -> Unit
             }
         }
         open.keys.toList().forEach { close(it, queryEndMs) }
 
-        return raw.mapValues { (_, spans) -> intersect(union(spans), usable) }
+        return Collected(raw.mapValues { (_, spans) -> intersect(union(spans), usable) }, gaps)
     }
 
+    /** 화면이 켜져 있는데 이벤트가 [SILENT_GAP_MS] 넘게 없는 구간 — 그 사이 기기 상태를 모른다. */
+    private fun silentGaps(sorted: List<UsageEvent>, screenOn: List<Span>): List<Span> =
+        sorted.zipWithNext()
+            .filter { (a, b) -> b.timeMs - a.timeMs > SILENT_GAP_MS }
+            .map { (a, b) -> Span(a.timeMs, b.timeMs) }
+            .filter { gap -> screenOn.any { it.start <= gap.start && gap.start < it.end } }
+
+    private fun subtract(spans: List<Span>, holes: List<Span>): List<Span> =
+        holes.fold(spans) { acc, hole ->
+            acc.flatMap { span ->
+                if (hole.end <= span.start || hole.start >= span.end) listOf(span)
+                else listOfNotNull(
+                    Span(span.start, hole.start).takeIf { hole.start > span.start },
+                    Span(hole.end, span.end).takeIf { hole.end < span.end },
+                )
+            }
+        }
+
     /** 한 구간의 앱별 합계와 품질. [dataFromMs] 는 조회된 첫 이벤트 시각(그 이전은 기록이 없다고 본다). */
-    fun windowUsage(perApp: Map<String, List<Span>>, window: Window, nowMs: Long, dataFromMs: Long?): WindowUsage? {
+    fun windowUsage(collected: Collected, window: Window, nowMs: Long, dataFromMs: Long?): WindowUsage? {
         if (window.startMs >= nowMs) return null // 아직 시작 안 한 구간은 보내지 않는다
         val observedUntil = minOf(window.endMs, nowMs)
         if (dataFromMs == null || dataFromMs >= observedUntil) {
             return WindowUsage(Quality.UNAVAILABLE, observedUntil, null)
         }
         val from = maxOf(window.startMs, dataFromMs)
-        val apps = perApp.mapNotNull { (pkg, spans) ->
+        val apps = collected.perApp.mapNotNull { (pkg, spans) ->
             val ms = spans.sumOf { maxOf(0L, minOf(it.end, observedUntil) - maxOf(it.start, from)) }
             if (ms > 0) AppDuration(pkg, ms) else null
         }.sortedByDescending { it.durationMs }
-        // ponytail: 재부팅·시계 변경 공백은 SHUTDOWN 이벤트로만 알아챈다. 이벤트 없이 끊긴 기록은
-        // complete 로 과대 표시될 수 있다 — 체크포인트 기반 수집(WorkManager)이 붙으면 거기서 판정.
-        val complete = window.endMs <= nowMs && dataFromMs <= window.startMs
+        // 상태를 모르는 공백이 걸친 구간은 일부만 확인된 것이다.
+        val hasGap = collected.gaps.any { it.start < observedUntil && it.end > from }
+        val complete = window.endMs <= nowMs && dataFromMs <= window.startMs && !hasGap
         return WindowUsage(if (complete) Quality.COMPLETE else Quality.PARTIAL, observedUntil, apps)
     }
 
@@ -84,6 +115,7 @@ object UsageIntervals {
             when (event.type) {
                 EventType.SCREEN_ON -> interactive = true
                 EventType.SCREEN_OFF, EventType.SHUTDOWN -> interactive = false
+                EventType.STARTUP -> continue
                 EventType.KEYGUARD_SHOWN -> locked = true
                 EventType.KEYGUARD_HIDDEN -> locked = false
                 else -> continue

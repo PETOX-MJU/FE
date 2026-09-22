@@ -1,10 +1,21 @@
 import { useCallback, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { localDateKey } from '@/features/screentime/dashboard';
 
 const STORAGE_KEY = 'petox:lastPetRewardDate';
+// 대시보드 출석체크가 읽는 날짜 목록(YYYY-MM-DD 배열)
+export const ATTENDANCE_KEY = 'petox:attendanceDates';
 
+// toISOString 은 UTC 라 한국에선 오전 9시에 날짜가 바뀐다. 기기 현지 날짜를 쓴다.
 function todayKey(): string {
-  return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  return localDateKey(new Date());
+}
+
+async function recordAttendance(date: string) {
+  const saved: string[] = JSON.parse((await AsyncStorage.getItem(ATTENDANCE_KEY)) ?? '[]');
+  if (!saved.includes(date)) {
+    await AsyncStorage.setItem(ATTENDANCE_KEY, JSON.stringify([...saved, date]));
+  }
 }
 
 // 펫을 쓰다듬어 코인을 받는 건 하루 1회로 제한한다.
@@ -25,6 +36,7 @@ export function useDailyPetReward() {
     }
     setCanClaim(false);
     AsyncStorage.setItem(STORAGE_KEY, todayKey());
+    recordAttendance(todayKey());
     return true;
   }, [canClaim]);
 

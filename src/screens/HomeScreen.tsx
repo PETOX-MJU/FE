@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   Image,
+  type ImageSourcePropType,
   Pressable,
   StatusBar,
   StyleSheet,
@@ -8,9 +9,12 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
+import { loadPetProfile } from '@/storage/petProfile';
 import {
   HOME_BG_ASPECT,
   homeImages,
+  homePetImages,
   petImages,
   type PetId,
 } from '@/assets/images';
@@ -21,7 +25,7 @@ import { HomeTopActions } from '@/components/HomeTopActions';
 import { PetCharacter } from '@/components/PetCharacter';
 import { ShopPanel } from '@/components/ShopPanel';
 import { useCoinBalance } from '@/hooks/useCoinBalance';
-import { useDailyPetReward } from '@/hooks/useDailyPetReward';
+import { useDailyCheckIn } from '@/hooks/useDailyCheckIn';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 
@@ -35,7 +39,7 @@ const TOP_BAR_BELOW_STATUS = 36; // 상태바(32) 아래 36 → y 68
 const TOP_BAR_H = 50; // 상단 pill 높이
 const BOTTOM_BAR_BOTTOM = 50; // 홈 버튼 아래 여백 (917 - 839)
 
-// TODO: 온보딩에서 고른 캐릭터를 저장소(AsyncStorage/Supabase)에서 읽어와 넣기
+// 온보딩에서 아무것도 못 불러왔을 때 보여줄 펫
 const DEFAULT_PET: PetId = 'rottweiler';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
@@ -46,7 +50,23 @@ export function HomeScreen({ navigation }: Props) {
   // 코인은 서버 원장(coin_ledger) 합계. 로그인 전이거나 불러오기 전엔 0.
   const { coins } = useCoinBalance();
   const [shopOpen, setShopOpen] = useState(false);
-  const { canClaim, claim } = useDailyPetReward();
+  const { canCheckIn, checkIn, devResetCheckIn } = useDailyCheckIn();
+
+  // 온보딩에서 고른 내 펫. 사진으로 만든 캐릭터(generatedUri)가 있으면 그걸, 아니면 고른 기본 캐릭터.
+  const [petSource, setPetSource] = useState<ImageSourcePropType>(
+    petImages[DEFAULT_PET],
+  );
+  useFocusEffect(
+    useCallback(() => {
+      loadPetProfile()
+        .then(profile => {
+          if (profile?.generatedUri)
+            setPetSource({ uri: profile.generatedUri });
+          else if (profile?.pet) setPetSource(homePetImages[profile.pet]);
+        })
+        .catch(() => {});
+    }, []),
+  );
 
   // 배경: 피그마처럼 화면 높이에 맞추고 왼쪽 정렬(오른쪽이 잘림).
   // 화면이 배경보다 가로로 넓으면 가로에 맞춘다.
@@ -59,11 +79,9 @@ export function HomeScreen({ navigation }: Props) {
     [bgW, bgH],
   );
 
-  // 쓰다듬기 보상은 코인이 아니라 하트(애착도 +5)다 — 화면에도 하트 +5 로 뜬다.
-  // TODO: 서버에 펫(pets 행)이 생기면 pet_interact(p_pet_id) RPC 로 애착도를 올린다
-  // (하루 최대 +50, 100 상한은 서버가 계산). 지금은 연출만 하고 하루 1회로 제한한다.
+  // 오늘 처음 쓰다듬으면 출석 + 코인 지급(서버 check_in, 코인 +5).
   const handlePetTap = () => {
-    claim();
+    checkIn();
   };
 
   return (
@@ -77,11 +95,13 @@ export function HomeScreen({ navigation }: Props) {
 
       <BackdropContext.Provider value={backdrop}>
         <PetCharacter
-          source={petImages[DEFAULT_PET]}
+          source={petSource}
           scale={k}
-          canClaim={canClaim}
+          canClaim={canCheckIn}
           rewardAmount={PET_REWARD}
           onTap={handlePetTap}
+          // 개발 모드에서 펫을 길게 누르면 출석 전 상태로 (말풍선 확인용)
+          onLongPress={__DEV__ ? devResetCheckIn : undefined}
           style={[styles.pet, { left: PET_X * k, top: PET_Y * k }]}
         />
 

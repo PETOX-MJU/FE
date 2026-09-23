@@ -24,3 +24,12 @@ export const petImages = {
 };
 
 export type PetId = keyof typeof petImages;
+
+// 온보딩 기본 캐릭터(골든·닥스·코기·허스키)의 홈 화면용 정면 스프라이트.
+// 원본(pets/*_front.png)의 투명 여백을 걷어내고 홈 스프라이트 칸(240 × 350, 발끝 아래 정렬)에 맞춘 것.
+export const homePetImages = {
+  golden: require('./pets/home/golden.png'),
+  dachshund: require('./pets/home/dachshund.png'),
+  corgi: require('./pets/home/corgi.png'),
+  husky: require('./pets/home/husky.png'),
+};

@@ -12,6 +12,8 @@
         <category android:name="android.intent.category.HOME" />
       </intent>
     </queries>
+    <!-- 반려동물 사진 첨부: 카메라 촬영용. 앨범은 시스템 사진 선택기를 써서 권한이 필요 없습니다. -->
+    <uses-permission android:name="android.permission.CAMERA" />
 
     <application
       android:name=".MainApplication"

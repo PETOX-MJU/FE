@@ -1,5 +1,6 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  Alert,
   FlatList,
   Image,
   Pressable,
@@ -14,7 +15,15 @@ import {
 } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { homeImages } from '@/assets/images';
+import {
+  NotEnoughCoinsError,
+  buyItem,
+  fetchShopState,
+  type ShopState,
+} from '@/api/shop';
+import { supabase } from '@/api/supabase';
 import { shopThemes, type ShopItem, type ShopTheme } from '@/data/shop';
+import { notifyCoinsChanged, useCoinBalance } from '@/hooks/useCoinBalance';
 import { fonts } from '@/theme/fonts';
 
 const THEME_COL_W = 132; // 테마 카드 한 장 너비
@@ -36,6 +45,95 @@ export function ShopPanel({ tailRight = 27, style }: Props) {
 
   const theme = shopThemes[themeIndex];
   const itemSize = gridW > 0 ? (gridW - GAP) / 2 : 0;
+
+  // 서버 카탈로그(가격·uuid)와 내 보유 목록. 패널이 열릴 때마다 새로 읽는다.
+  const [shop, setShop] = useState<ShopState | null>(null);
+  const [buying, setBuying] = useState(false);
+  const { coins } = useCoinBalance();
+
+  const loadShop = useCallback(async () => {
+    try {
+      setShop(await fetchShopState());
+    } catch (e) {
+      console.warn('상점 정보를 불러오지 못했어요', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadShop();
+  }, [loadShop]);
+
+  /** 화면에 보일 가격 — 서버에 등록된 아이템이면 서버 가격이 기준이다. */
+  const priceOf = (entry: { name: string; price: number }) =>
+    shop?.itemsByName.get(entry.name)?.price ?? entry.price;
+  const isOwned = (entry: { name: string; owned?: boolean }) => {
+    const server = shop?.itemsByName.get(entry.name);
+    return server ? shop!.ownedIds.has(server.id) : !!entry.owned;
+  };
+
+  const handleBuy = async (entry: {
+    name: string;
+    price: number;
+    owned?: boolean;
+  }) => {
+    if (buying) return;
+    const { data: auth } = await supabase.auth.getSession();
+    if (!auth.session) {
+      Alert.alert(
+        '로그인이 필요해요',
+        '로그인하면 코인으로 아이템을 살 수 있어요.',
+      );
+      return;
+    }
+    if (isOwned(entry)) {
+      Alert.alert(entry.name, '이미 가지고 있어요.');
+      return;
+    }
+    const server = shop?.itemsByName.get(entry.name);
+    if (!server) {
+      // 서버 items 테이블에 아직 없는 아이템 — BE 에 같은 이름으로 등록돼야 살 수 있다.
+      Alert.alert(entry.name, '아직 판매 준비 중인 아이템이에요.');
+      return;
+    }
+    const balance = coins ?? 0;
+    if (balance < server.price) {
+      Alert.alert(
+        '코인이 부족해요',
+        `${server.price}코인이 필요해요. (지금 ${balance}코인)`,
+      );
+      return;
+    }
+    Alert.alert(
+      '구매할까요?',
+      `${entry.name}을(를) ${server.price}코인에 구매할까요?`,
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '구매',
+          onPress: async () => {
+            setBuying(true);
+            try {
+              await buyItem(server.id);
+              Alert.alert('구매 완료', `${entry.name}을(를) 샀어요!`);
+            } catch (e) {
+              if (e instanceof NotEnoughCoinsError) {
+                Alert.alert(
+                  '코인이 부족해요',
+                  '잔액이 바뀌었어요. 다시 확인해 주세요.',
+                );
+              } else {
+                Alert.alert('구매 실패', '잠시 후 다시 시도해 주세요.');
+              }
+            } finally {
+              notifyCoinsChanged();
+              await loadShop();
+              setBuying(false);
+            }
+          },
+        },
+      ],
+    );
+  };
 
   const handleMomentumEnd = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -68,7 +166,14 @@ export function ShopPanel({ tailRight = 27, style }: Props) {
             snapToInterval={THEME_COL_W}
             decelerationRate="fast"
             onMomentumScrollEnd={handleMomentumEnd}
-            renderItem={({ item }) => <ThemeCard theme={item} />}
+            renderItem={({ item }) => (
+              <ThemeCard
+                theme={item}
+                price={priceOf(item)}
+                owned={isOwned(item)}
+                onPress={() => handleBuy(item)}
+              />
+            )}
           />
           <View style={styles.dots}>
             {shopThemes.map((t, i) => (
@@ -84,40 +189,64 @@ export function ShopPanel({ tailRight = 27, style }: Props) {
           <Text style={styles.sectionTitle}>아이템</Text>
           <View style={styles.grid} onLayout={handleGridLayout}>
             {theme.items.map(item => (
-              <ItemCard key={item.id} item={item} size={itemSize} />
+              <ItemCard
+                key={item.id}
+                item={item}
+                size={itemSize}
+                price={priceOf(item)}
+                owned={isOwned(item)}
+                onPress={() => handleBuy(item)}
+              />
             ))}
           </View>
+          {theme.items.length === 0 && (
+            <Text style={styles.emptyText}>이 테마엔 아이템이 없어요</Text>
+          )}
         </View>
       </View>
     </Animated.View>
   );
 }
 
-function ThemeCard({ theme }: { theme: ShopTheme }) {
+type CardProps = { price: number; owned: boolean; onPress: () => void };
+
+function ThemeCard({
+  theme,
+  price,
+  owned,
+  onPress,
+}: { theme: ShopTheme } & CardProps) {
   return (
-    <View style={styles.themeCard}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${theme.name} 테마, ${price} 코인`}
+      onPress={onPress}
+      style={({ pressed }) => [styles.themeCard, pressed && styles.pressed]}
+    >
       {theme.preview ? (
         <Image source={theme.preview} style={styles.fill} resizeMode="cover" />
       ) : (
         <Placeholder label={theme.name} />
       )}
-      {theme.owned ? (
-        <View style={styles.ownedOverlay}>
-          <Text style={styles.ownedText}>보유</Text>
-        </View>
-      ) : (
-        <PriceTag price={theme.price} />
-      )}
-    </View>
+      {/* 보유 표시는 일단 빼 둔다 — 가진 테마는 가격만 숨긴다. */}
+      {!owned && <PriceTag price={price} />}
+    </Pressable>
   );
 }
 
-function ItemCard({ item, size }: { item: ShopItem; size: number }) {
-  // TODO: 구매·배치 동작은 아직 없다. 코인 원장이 붙으면 여기서 구매를 처리한다.
+function ItemCard({
+  item,
+  size,
+  price,
+  owned,
+  onPress,
+}: { item: ShopItem; size: number } & CardProps) {
+  // TODO: 배치(홈 화면에 놓기)는 아직 없다.
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${item.name}, ${item.price} 코인`}
+      accessibilityLabel={`${item.name}, ${price} 코인`}
+      onPress={onPress}
       style={({ pressed }) => [
         styles.itemCard,
         { width: size, height: size },
@@ -127,19 +256,14 @@ function ItemCard({ item, size }: { item: ShopItem; size: number }) {
       {item.thumbnail ? (
         <Image
           source={item.thumbnail}
-          style={styles.fill}
+          style={styles.itemImage}
           resizeMode="contain"
         />
       ) : (
         <Placeholder label={item.name} />
       )}
-      {item.owned ? (
-        <View style={styles.ownedOverlay}>
-          <Text style={styles.ownedText}>보유</Text>
-        </View>
-      ) : (
-        <PriceTag price={item.price} />
-      )}
+      {/* 보유 표시는 일단 빼 둔다 — 가진 아이템은 가격만 숨긴다. */}
+      {!owned && <PriceTag price={price} />}
     </Pressable>
   );
 }
@@ -239,6 +363,23 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  // 오른쪽 위 가격표와 겹치지 않게 위쪽을 조금 더 비운다.
+  itemImage: {
+    position: 'absolute',
+    top: 22,
+    left: 8,
+    right: 8,
+    bottom: 8,
+    width: undefined,
+    height: undefined,
+  },
+  emptyText: {
+    fontFamily: fonts.kkukkukk,
+    fontSize: 12,
+    color: '#B5B5B5',
+    textAlign: 'center',
+    marginTop: 40,
+  },
   placeholder: {
     flex: 1,
     alignItems: 'center',
@@ -268,17 +409,5 @@ const styles = StyleSheet.create({
     fontFamily: fonts.kkukkukk,
     fontSize: 12,
     color: '#5A5A5A',
-  },
-  // 이미 가지고 있는 테마·아이템 — 카드 전체를 살짝 어둡게 덮고 가운데에 '보유'
-  ownedOverlay: {
-    ...StyleSheet.absoluteFill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.30)',
-  },
-  ownedText: {
-    fontFamily: fonts.kkukkukk,
-    fontSize: 14,
-    color: '#FFFFFF',
   },
 });

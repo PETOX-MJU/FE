@@ -20,6 +20,7 @@ import { BackdropContext, type Backdrop } from '@/components/GlassSurface';
 import { HomeTopActions } from '@/components/HomeTopActions';
 import { PetCharacter } from '@/components/PetCharacter';
 import { ShopPanel } from '@/components/ShopPanel';
+import { useCoinBalance } from '@/hooks/useCoinBalance';
 import { useDailyPetReward } from '@/hooks/useDailyPetReward';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
@@ -37,14 +38,13 @@ const BOTTOM_BAR_BOTTOM = 50; // 홈 버튼 아래 여백 (917 - 839)
 // TODO: 온보딩에서 고른 캐릭터를 저장소(AsyncStorage/Supabase)에서 읽어와 넣기
 const DEFAULT_PET: PetId = 'rottweiler';
 
-// TODO: 코인은 지금 화면 로컬 상태다. coin_ledger(Supabase)가 붙으면
-// 초기값을 서버에서 읽어오고 claim 시 원장에 기록하도록 바꿔야 한다.
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
 export function HomeScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { width: screenW, height: screenH } = useWindowDimensions();
-  const [coins, setCoins] = useState(270);
+  // 코인은 서버 원장(coin_ledger) 합계. 로그인 전이거나 불러오기 전엔 0.
+  const { coins } = useCoinBalance();
   const [shopOpen, setShopOpen] = useState(false);
   const { canClaim, claim } = useDailyPetReward();
 
@@ -59,10 +59,11 @@ export function HomeScreen({ navigation }: Props) {
     [bgW, bgH],
   );
 
+  // 쓰다듬기 보상은 코인이 아니라 하트(애착도 +5)다 — 화면에도 하트 +5 로 뜬다.
+  // TODO: 서버에 펫(pets 행)이 생기면 pet_interact(p_pet_id) RPC 로 애착도를 올린다
+  // (하루 최대 +50, 100 상한은 서버가 계산). 지금은 연출만 하고 하루 1회로 제한한다.
   const handlePetTap = () => {
-    if (claim()) {
-      setCoins(prev => prev + PET_REWARD);
-    }
+    claim();
   };
 
   return (
@@ -95,7 +96,7 @@ export function HomeScreen({ navigation }: Props) {
         <View
           style={[styles.topBar, { top: insets.top + TOP_BAR_BELOW_STATUS }]}
         >
-          <CoinBadge amount={coins} />
+          <CoinBadge amount={coins ?? 0} />
           <HomeTopActions
             shopOpen={shopOpen}
             onPressShop={() => setShopOpen(open => !open)}
@@ -138,6 +139,7 @@ export function HomeScreen({ navigation }: Props) {
             iconHeight={40}
             size={68}
             accessibilityLabel="캐릭터"
+            onPress={() => navigation.navigate('MyPage')}
           />
         </View>
       </BackdropContext.Provider>

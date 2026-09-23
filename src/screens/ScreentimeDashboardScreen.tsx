@@ -308,16 +308,26 @@ export function ScreentimeDashboardScreen({ navigation }: Props) {
           <Sticker label="출석 체크" color={tone.attendance} />
           <Text style={styles.month}>{calendar.monthName}</Text>
         </View>
+        {/* 주 단위로 한 줄씩 그린다. 칸 너비를 %(100/7)로 주면 반올림 때문에 한 줄에 6칸만 들어가
+            달력이 왼쪽으로 쏠려서, 줄마다 7칸을 flex: 1 로 똑같이 나눈다. */}
         <View style={styles.calendar}>
-          {calendar.cells.map((cell, index) => (
-            <View key={cell?.key ?? `blank-${index}`} style={styles.calendarCell}>
-              {cell && (
-                <View style={[styles.dayCircle, cell.attended && styles.dayAttended]} accessibilityLabel={cell.attended ? `${cell.day}일 출석` : undefined}>
-                  <Text style={[styles.dayText, cell.attended && styles.dayTextAttended]}>{cell.day}</Text>
-                </View>
-              )}
-            </View>
-          ))}
+          {Array.from({ length: Math.ceil(calendar.cells.length / 7) }, (_, week) => {
+            const row = calendar.cells.slice(week * 7, week * 7 + 7);
+            while (row.length < 7) row.push(null); // 마지막 주 빈칸 채우기
+            return (
+              <View key={week} style={styles.calendarRow}>
+                {row.map((cell, i) => (
+                  <View key={cell?.key ?? `blank-${week}-${i}`} style={styles.calendarCell}>
+                    {cell && (
+                      <View style={[styles.dayCircle, cell.attended && styles.dayAttended]} accessibilityLabel={cell.attended ? `${cell.day}일 출석` : undefined}>
+                        <Text style={[styles.dayText, cell.attended && styles.dayTextAttended]}>{cell.day}</Text>
+                      </View>
+                    )}
+                  </View>
+                ))}
+              </View>
+            );
+          })}
         </View>
         {server.status !== 'ready' && <Text style={styles.emptyText}>{SERVER_MESSAGE[server.status]}</Text>}
         <Divider />
@@ -357,8 +367,9 @@ const styles = StyleSheet.create({
   missionFailed: { color: petoxColors.hint },
   emptyText: { ...petoxTextBase, fontSize: 14, color: petoxColors.hint, textAlign: 'center', marginTop: 16 },
   month: { ...petoxTextBase, fontSize: 16, color: petoxColors.hint },
-  calendar: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 12 },
-  calendarCell: { width: `${100 / 7}%`, height: 36, alignItems: 'center', justifyContent: 'center' },
+  calendar: { marginTop: 12 },
+  calendarRow: { flexDirection: 'row' },
+  calendarCell: { flex: 1, height: 36, alignItems: 'center', justifyContent: 'center' },
   dayCircle: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   dayAttended: { backgroundColor: tone.attendance, borderRadius: 16, overflow: 'hidden' },
   dayText: { ...petoxTextBase, fontSize: 16, color: '#BDBDBD' },

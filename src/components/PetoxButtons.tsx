@@ -6,6 +6,8 @@ type ButtonProps = {
   text: string;
   onPress: () => void;
   style?: ViewStyle;
+  /** true 면 눌리지 않고 흐리게 보입니다 (요청 중 등) */
+  disabled?: boolean;
 };
 
 /** 말풍선 아이콘이 붙은 카카오 노란 로그인 버튼. */
@@ -31,15 +33,23 @@ export function KakaoButton({ text, onPress, style }: ButtonProps) {
 }
 
 /** 검정 단색 기본 액션 버튼. */
-export function PetoxBlackButton({ text, onPress, style }: ButtonProps) {
+export function PetoxBlackButton({
+  text,
+  onPress,
+  style,
+  disabled = false,
+}: ButtonProps) {
   return (
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
+      disabled={disabled}
+      accessibilityState={{ disabled }}
       style={({ pressed }) => [
         styles.base,
         styles.black,
         pressed && styles.pressed,
+        disabled && styles.disabled,
         style,
       ]}>
       <Text style={styles.blackLabel}>{text}</Text>
@@ -57,6 +67,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   pressed: { opacity: 0.85 },
+  disabled: { opacity: 0.5 },
   kakao: { backgroundColor: petoxColors.kakaoYellow },
   kakaoIcon: { width: 20, height: 20, marginRight: 8 },
   kakaoLabel: {

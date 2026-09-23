@@ -2,6 +2,12 @@
 export const onboardingStrings = {
   next: '다음',
 
+  // 0단계: 가입 직후 안내
+  welcomeTitle: (nickname: string) => `${nickname}님,\n펫톡스에 오신 걸 환영해요!`,
+  welcomeTitleNoName: '펫톡스에 오신 걸\n환영해요!',
+  welcomeSubtitle: '함께할 펫을 만나기 전에\n몇 가지만 설정할게요',
+  welcomeStart: '시작하기',
+
   // 1단계: 사용 목표
   goalTitle: '하루에 숏폼 시청 목표를\n설정해 볼까요?',
   goalSubtitle: '하루 허용량입니다. 추후 수정 가능',

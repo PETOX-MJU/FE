@@ -20,4 +20,16 @@ export const petoxStrings = {
   signupErrorNickname: '닉네임을 입력해 주세요',
   signupErrorEmail: '올바른 이메일 형식을 입력해 주세요',
   signupErrorPassword: '비밀번호를 입력해 주세요',
+  signupErrorPasswordShort: '비밀번호는 6자 이상이어야 해요',
+  signupNeedsConfirm: '가입 확인 메일을 보냈어요. 메일의 링크를 누른 뒤 로그인해 주세요.',
+
+  loggingIn: '로그인 중…',
+  signingUp: '가입 중…',
+  authErrorInvalidCredentials: '이메일 또는 비밀번호가 맞지 않아요',
+  authErrorUserExists: '이미 가입된 이메일이에요. 로그인해 주세요.',
+  authErrorWeakPassword: '비밀번호는 6자 이상이어야 해요',
+  authErrorEmailNotConfirmed: '이메일 인증이 아직 안 됐어요. 받은 메일을 확인해 주세요.',
+  authErrorRateLimit: '요청이 너무 많아요. 잠시 후 다시 시도해 주세요.',
+  authErrorNetwork: '네트워크에 연결할 수 없어요. 인터넷 연결을 확인해 주세요.',
+  authErrorUnknown: '문제가 생겼어요. 잠시 후 다시 시도해 주세요.',
 } as const;

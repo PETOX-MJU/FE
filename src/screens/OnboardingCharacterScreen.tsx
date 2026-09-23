@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
   body: {
     flex: 1,
     paddingHorizontal: petoxLayout.screenPadding,
-    paddingBottom: 24,
+    paddingBottom: 48, // 버튼이 화면 아래에 붙지 않도록
   },
   title: {
     ...petoxTextBase,
@@ -128,5 +128,5 @@ const styles = StyleSheet.create({
     height: SPOTLIGHT_W / 1.5,
   },
   spacer: { flex: 1, minHeight: 20 },
-  photoBtn: { marginTop: 4 },
+  photoBtn: { marginTop: 10 },
 });

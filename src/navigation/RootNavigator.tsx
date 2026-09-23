@@ -3,10 +3,12 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { HomeScreen } from '@/screens/HomeScreen';
 import { ScreentimeDashboardScreen } from '@/screens/ScreentimeDashboardScreen';
+import { MyPageScreen } from '@/screens/MyPageScreen';
 import { SplashScreen } from '@/screens/SplashScreen';
 import { LoginScreen } from '@/screens/LoginScreen';
 import { EmailLoginScreen } from '@/screens/EmailLoginScreen';
 import { SignupScreen } from '@/screens/SignupScreen';
+import { OnboardingWelcomeScreen } from '@/screens/OnboardingWelcomeScreen';
 import { OnboardingGoalScreen } from '@/screens/OnboardingGoalScreen';
 import { OnboardingBlockTimeScreen } from '@/screens/OnboardingBlockTimeScreen';
 import { OnboardingCustomTimeScreen } from '@/screens/OnboardingCustomTimeScreen';
@@ -21,6 +23,7 @@ export type RootStackParamList = {
   Login: undefined;
   EmailLogin: undefined;
   Signup: undefined;
+  OnboardingWelcome: { nickname?: string } | undefined;
   OnboardingGoal: undefined;
   OnboardingBlockTime: { goalMinutes: number };
   OnboardingCustomTime: { goalMinutes: number };
@@ -37,6 +40,7 @@ export type RootStackParamList = {
   };
   Home: undefined;
   ScreentimeDashboard: undefined;
+  MyPage: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -68,6 +72,11 @@ export function RootNavigator() {
         <Stack.Screen
           name="Signup"
           component={SignupScreen}
+          options={authOptions}
+        />
+        <Stack.Screen
+          name="OnboardingWelcome"
+          component={OnboardingWelcomeScreen}
           options={authOptions}
         />
         <Stack.Screen
@@ -107,6 +116,7 @@ export function RootNavigator() {
         />
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="ScreentimeDashboard" component={ScreentimeDashboardScreen} />
+        <Stack.Screen name="MyPage" component={MyPageScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

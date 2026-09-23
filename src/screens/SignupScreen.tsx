@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -13,6 +14,7 @@ import { PetoxLogo } from '@/components/PetoxLogo';
 import { PetoxTextField } from '@/components/PetoxTextField';
 import { petoxStrings } from '@/constants/petoxStrings';
 import { isValidEmail } from '@/constants/validation';
+import { authErrorMessage, signUpWithEmail } from '@/api/auth';
 import { petoxColors, petoxLayout, petoxTextBase } from '@/theme/petox';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 
@@ -23,10 +25,13 @@ export function SignupScreen({ navigation }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  const onSubmit = () => {
+  const onSubmit = async () => {
+    if (submitting) return;
     // 세 칸 모두 채워야 가입이 진행됩니다.
-    if (nickname.trim().length === 0) {
+    const trimmedNickname = nickname.trim();
+    if (trimmedNickname.length === 0) {
       setError(petoxStrings.signupErrorNickname);
       return;
     }
@@ -38,11 +43,28 @@ export function SignupScreen({ navigation }: Props) {
       setError(petoxStrings.signupErrorPassword);
       return;
     }
-    // TODO: 백엔드 연동 지점 — 이 payload 로 회원가입 API(src/api) 호출 후 이동.
-    const payload = { nickname, email, password };
-    console.log('[Petox] signup payload', payload);
-    // 가입 직후에는 홈이 아니라 온보딩으로.
-    navigation.navigate('OnboardingGoal');
+    // Supabase 최소 비밀번호 길이(BE supabase/config.toml minimum_password_length = 6)
+    if (password.length < 6) {
+      setError(petoxStrings.signupErrorPasswordShort);
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const result = await signUpWithEmail(trimmedNickname, email, password);
+      if (result.status === 'needsEmailConfirm') {
+        // 이메일 인증이 켜진 프로젝트: 세션이 없으므로 인증 후 로그인하도록 로그인 화면으로.
+        Alert.alert('', petoxStrings.signupNeedsConfirm);
+        navigation.replace('EmailLogin');
+        return;
+      }
+      // 가입 직후에는 홈이 아니라 온보딩 안내 화면으로.
+      // replace: 가입이 끝난 뒤 뒤로가기로 가입 폼에 돌아오지 않게 합니다.
+      navigation.replace('OnboardingWelcome', { nickname: trimmedNickname });
+    } catch (e) {
+      setError(authErrorMessage(e));
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -89,8 +111,9 @@ export function SignupScreen({ navigation }: Props) {
           {error !== null && <Text style={styles.error}>{error}</Text>}
 
           <PetoxBlackButton
-            text={petoxStrings.signupSubmit}
+            text={submitting ? petoxStrings.signingUp : petoxStrings.signupSubmit}
             onPress={onSubmit}
+            disabled={submitting}
             style={styles.submit}
           />
         </ScrollView>

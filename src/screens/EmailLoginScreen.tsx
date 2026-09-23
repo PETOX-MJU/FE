@@ -14,6 +14,11 @@ import { PetoxLogo } from '@/components/PetoxLogo';
 import { PetoxTextField } from '@/components/PetoxTextField';
 import { petoxStrings } from '@/constants/petoxStrings';
 import { isValidEmail } from '@/constants/validation';
+import {
+  authErrorMessage,
+  routeAfterLogin,
+  signInWithEmail,
+} from '@/api/auth';
 import { petoxColors, petoxLayout, petoxTextBase } from '@/theme/petox';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 
@@ -23,8 +28,10 @@ export function EmailLoginScreen({ navigation }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  const onSubmit = () => {
+  const onSubmit = async () => {
+    if (submitting) return;
     if (!isValidEmail(email)) {
       setError(petoxStrings.emailLoginErrorEmail);
       return;
@@ -33,9 +40,17 @@ export function EmailLoginScreen({ navigation }: Props) {
       setError(petoxStrings.emailLoginErrorPassword);
       return;
     }
-    // TODO: 백엔드 연동 지점 — 실제 인증 API(src/api) 호출 후 성공 시 이동.
-    // 지금은 클라이언트 유효성 검사만 통과하면 로그인 성공 처리.
-    navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
+
+    setSubmitting(true);
+    try {
+      await signInWithEmail(email, password);
+      // 온보딩을 끝내지 않았으면 홈 대신 온보딩으로 보낸다.
+      const next = await routeAfterLogin();
+      navigation.reset({ index: 0, routes: [{ name: next }] });
+    } catch (e) {
+      setError(authErrorMessage(e));
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -79,8 +94,9 @@ export function EmailLoginScreen({ navigation }: Props) {
 
           {/* 하단: 로그인 버튼 + 회원가입 링크 */}
           <PetoxBlackButton
-            text={petoxStrings.emailLoginSubmit}
+            text={submitting ? petoxStrings.loggingIn : petoxStrings.emailLoginSubmit}
             onPress={onSubmit}
+            disabled={submitting}
           />
           <Text
             style={styles.toSignup}

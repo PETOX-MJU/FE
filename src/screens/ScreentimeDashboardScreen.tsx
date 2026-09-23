@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import Svg, { Defs, LinearGradient, Line, Path, Polygon, Stop, Text as SvgText } from 'react-native-svg';
 import { supabase } from '@/api/supabase';
 import {
@@ -282,12 +283,7 @@ export function ScreentimeDashboardScreen({ navigation }: Props) {
     <View style={[styles.safeArea, { paddingTop: insets.top }]}>
       <StatusBar barStyle="dark-content" />
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40 }]} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Pressable onPress={navigation.goBack} accessibilityRole="button" accessibilityLabel="뒤로 가기" hitSlop={12}>
-            <Text style={styles.back}>‹</Text>
-          </Pressable>
-          <Text style={styles.title}>대시보드</Text>
-        </View>
+        <ScreenHeader title="대시보드" onBack={navigation.goBack} style={styles.header} />
 
         <Sticker label="오늘의 미션" color={tone.mission} />
         {server.status !== 'ready' ? (
@@ -346,10 +342,9 @@ export function ScreentimeDashboardScreen({ navigation }: Props) {
 // 브랜드 폰트는 Regular 한 종류뿐이라 fontWeight 를 주면 시스템 폰트로 떨어집니다. 굵기 대신 크기·색으로 구분합니다.
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: petoxColors.white },
-  content: { paddingHorizontal: petoxLayout.screenPadding, paddingTop: 14 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 24 },
-  back: { fontSize: 34, lineHeight: 38, color: petoxColors.text },
-  title: { ...petoxTextBase, fontSize: 28, color: petoxColors.text },
+  content: { paddingHorizontal: petoxLayout.screenPadding },
+  // 좌우 여백은 content 가 이미 준다.
+  header: { paddingHorizontal: 0, marginBottom: 24 },
   sticker: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6 },
   stickerText: { ...petoxTextBase, fontSize: 15, color: petoxColors.black },
   divider: { height: 1, backgroundColor: tone.divider, marginVertical: 22 },

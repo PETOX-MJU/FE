@@ -55,8 +55,10 @@ export function OnboardingBlockTimeScreen({ navigation, route }: Props) {
 
         <View style={styles.spacer} />
 
+        {/* 시간대를 하나 이상 골라야 다음으로 넘어갑니다. */}
         <BoneButton
           text={S.next}
+          disabled={selected.length === 0}
           onPress={() =>
             navigation.navigate('OnboardingCharacter', {
               goalMinutes,

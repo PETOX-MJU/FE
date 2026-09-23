@@ -23,6 +23,8 @@ type Props = {
   /** 라벨 오른쪽에 붙는 아이콘 */
   icon?: ImageSourcePropType;
   style?: ViewStyle;
+  /** true 면 눌리지 않고 흐리게 보입니다 (필수 선택 전 등) */
+  disabled?: boolean;
 };
 
 /**
@@ -35,6 +37,7 @@ export function BoneButton({
   variant = 'filled',
   icon,
   style,
+  disabled = false,
 }: Props) {
   const green = petoxColors.green;
   const shape = (color: string, inset: number) => (
@@ -78,9 +81,12 @@ export function BoneButton({
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
+      disabled={disabled}
+      accessibilityState={{ disabled }}
       style={({ pressed }) => [
         styles.container,
         pressed && styles.pressed,
+        disabled && styles.disabled,
         style,
       ]}>
       {shape(green, 0)}
@@ -106,6 +112,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   pressed: { opacity: 0.85 },
+  disabled: { opacity: 0.4 },
   bar: { position: 'absolute', borderRadius: 24 },
   knob: { position: 'absolute' },
   labelRow: { flexDirection: 'row', alignItems: 'center' },

@@ -1,0 +1,245 @@
+{
+  "analysis": {
+    "insights": [
+      {
+        "code": "SELECTED_USAGE_DECREASED",
+        "evidence": {
+          "selected_daily_mean_ms": 9120000.0,
+          "selected_delta_ms": -5640000,
+          "selected_delta_pct": -8.12
+        },
+        "source": "template",
+        "text": "지난주 선택한 앱 사용량은 하루 평균 152분입니다. 전주 대비 주간 합계가 94분 줄었습니다. 변화율은 8.1%입니다."
+      },
+      {
+        "code": "NIGHT_TOP_APP",
+        "evidence": {
+          "night_share_pct": 50.0,
+          "night_total_ms": 5460000,
+          "package_name": "com.google.android.youtube"
+        },
+        "source": "template",
+        "text": "취침 전후로 가장 오래 사용한 앱은 com.google.android.youtube이고 91분입니다. 야간 사용의 50.0%입니다."
+      }
+    ],
+    "metrics": {
+      "after_bed_total_ms": 4200000,
+      "all_apps_total_ms": 63840000,
+      "comparison": {
+        "all_apps_delta_ms": -5640000,
+        "comparable": true,
+        "reason": null,
+        "selected_delta_ms": -5640000,
+        "selected_delta_pct": -8.12
+      },
+      "daily_evaluable_count": 0,
+      "daily_success_count": 0,
+      "night_evaluable_count": 0,
+      "night_success_count": 0,
+      "per_app": [
+        {
+          "delta_ms": -5100000,
+          "delta_pct": -13.82,
+          "is_target": true,
+          "night_share_pct": 50.0,
+          "night_total_ms": 5460000,
+          "package_name": "com.google.android.youtube",
+          "share_pct": 49.81,
+          "total_ms": 31800000
+        },
+        {
+          "delta_ms": -2160000,
+          "delta_pct": -9.52,
+          "is_target": true,
+          "night_share_pct": 30.77,
+          "night_total_ms": 3360000,
+          "package_name": "com.instagram.android",
+          "share_pct": 32.14,
+          "total_ms": 20520000
+        },
+        {
+          "delta_ms": 1620000,
+          "delta_pct": 16.36,
+          "is_target": true,
+          "night_share_pct": 19.23,
+          "night_total_ms": 2100000,
+          "package_name": "com.zhiliaoapp.musically",
+          "share_pct": 18.05,
+          "total_ms": 11520000
+        }
+      ],
+      "per_day": [
+        {
+          "after_bed_ms": 600000,
+          "after_bed_quality": "complete",
+          "all_apps_ms": 8220000,
+          "daily_quality": "complete",
+          "date": "2026-09-14",
+          "pre_bed_ms": 960000,
+          "pre_bed_quality": "complete",
+          "selected_ms": 8220000
+        },
+        {
+          "after_bed_ms": 600000,
+          "after_bed_quality": "complete",
+          "all_apps_ms": 8760000,
+          "daily_quality": "complete",
+          "date": "2026-09-15",
+          "pre_bed_ms": 960000,
+          "pre_bed_quality": "complete",
+          "selected_ms": 8760000
+        },
+        {
+          "after_bed_ms": 600000,
+          "after_bed_quality": "complete",
+          "all_apps_ms": 9060000,
+          "daily_quality": "complete",
+          "date": "2026-09-16",
+          "pre_bed_ms": 960000,
+          "pre_bed_quality": "complete",
+          "selected_ms": 9060000
+        },
+        {
+          "after_bed_ms": 600000,
+          "after_bed_quality": "complete",
+          "all_apps_ms": 9240000,
+          "daily_quality": "complete",
+          "date": "2026-09-17",
+          "pre_bed_ms": 960000,
+          "pre_bed_quality": "complete",
+          "selected_ms": 9240000
+        },
+        {
+          "after_bed_ms": 600000,
+          "after_bed_quality": "complete",
+          "all_apps_ms": 8880000,
+          "daily_quality": "complete",
+          "date": "2026-09-18",
+          "pre_bed_ms": 960000,
+          "pre_bed_quality": "complete",
+          "selected_ms": 8880000
+        },
+        {
+          "after_bed_ms": 600000,
+          "after_bed_quality": "complete",
+          "all_apps_ms": 10560000,
+          "daily_quality": "complete",
+          "date": "2026-09-19",
+          "pre_bed_ms": 960000,
+          "pre_bed_quality": "complete",
+          "selected_ms": 10560000
+        },
+        {
+          "after_bed_ms": 600000,
+          "after_bed_quality": "complete",
+          "all_apps_ms": 9120000,
+          "daily_quality": "complete",
+          "date": "2026-09-20",
+          "pre_bed_ms": 960000,
+          "pre_bed_quality": "complete",
+          "selected_ms": 9120000
+        }
+      ],
+      "pre_bed_total_ms": 6720000,
+      "previous_per_day": [
+        {
+          "after_bed_ms": 600000,
+          "after_bed_quality": "complete",
+          "all_apps_ms": 8700000,
+          "daily_quality": "complete",
+          "date": "2026-09-07",
+          "pre_bed_ms": 960000,
+          "pre_bed_quality": "complete",
+          "selected_ms": 8700000
+        },
+        {
+          "after_bed_ms": 600000,
+          "after_bed_quality": "complete",
+          "all_apps_ms": 9300000,
+          "daily_quality": "complete",
+          "date": "2026-09-08",
+          "pre_bed_ms": 960000,
+          "pre_bed_quality": "complete",
+          "selected_ms": 9300000
+        },
+        {
+          "after_bed_ms": 600000,
+          "after_bed_quality": "complete",
+          "all_apps_ms": 9780000,
+          "daily_quality": "complete",
+          "date": "2026-09-09",
+          "pre_bed_ms": 960000,
+          "pre_bed_quality": "complete",
+          "selected_ms": 9780000
+        },
+        {
+          "after_bed_ms": 600000,
+          "after_bed_quality": "complete",
+          "all_apps_ms": 10020000,
+          "daily_quality": "complete",
+          "date": "2026-09-10",
+          "pre_bed_ms": 960000,
+          "pre_bed_quality": "complete",
+          "selected_ms": 10020000
+        },
+        {
+          "after_bed_ms": 600000,
+          "after_bed_quality": "complete",
+          "all_apps_ms": 10080000,
+          "daily_quality": "complete",
+          "date": "2026-09-11",
+          "pre_bed_ms": 960000,
+          "pre_bed_quality": "complete",
+          "selected_ms": 10080000
+        },
+        {
+          "after_bed_ms": 600000,
+          "after_bed_quality": "complete",
+          "all_apps_ms": 11460000,
+          "daily_quality": "complete",
+          "date": "2026-09-12",
+          "pre_bed_ms": 960000,
+          "pre_bed_quality": "complete",
+          "selected_ms": 11460000
+        },
+        {
+          "after_bed_ms": 600000,
+          "after_bed_quality": "complete",
+          "all_apps_ms": 10140000,
+          "daily_quality": "complete",
+          "date": "2026-09-13",
+          "pre_bed_ms": 960000,
+          "pre_bed_quality": "complete",
+          "selected_ms": 10140000
+        }
+      ],
+      "selected_daily_mean_ms": 9120000.0,
+      "selected_night_mean_ms": 1560000.0,
+      "selected_total_ms": 63840000,
+      "valid_days": 7,
+      "valid_nights": 7
+    },
+    "mission_results": [],
+    "proposals": [
+      {
+        "basis_week": "2026-09-14",
+        "kind": "daily",
+        "profile_version": 1,
+        "reason_code": "MAINTAIN_INSUFFICIENT_SUCCESS",
+        "rules_version": "2026-09-10.1",
+        "target_ms": 10800000
+      },
+      {
+        "basis_week": "2026-09-14",
+        "kind": "night",
+        "profile_version": 1,
+        "reason_code": "MAINTAIN_INSUFFICIENT_SUCCESS",
+        "rules_version": "2026-09-10.1",
+        "target_ms": 2700000
+      }
+    ],
+    "rules_version": "2026-09-10.1",
+    "schema_version": "2",
+    "week_status": "ready"
+  }
+}

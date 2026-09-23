@@ -8,10 +8,12 @@ import React from 'react';
 import { StatusBar, StyleSheet, useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { useCheckInOnOpen } from '@/hooks/useCheckInOnOpen';
 import { RootNavigator } from '@/navigation/RootNavigator';
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
+  useCheckInOnOpen();
 
   return (
     <GestureHandlerRootView style={styles.root}>

@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { localDateKey } from '@/features/screentime/dashboard';
 
 const STORAGE_KEY = 'petox:lastPetRewardDate';
-
+// toISOString 은 UTC 라 한국에선 오전 9시에 날짜가 바뀐다. 기기 현지 날짜를 쓴다.
 function todayKey(): string {
-  return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  return localDateKey(new Date());
 }
 
 // 펫을 쓰다듬어 코인을 받는 건 하루 1회로 제한한다.

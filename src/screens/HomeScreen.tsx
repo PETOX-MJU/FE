@@ -21,6 +21,8 @@ import { HomeTopActions } from '@/components/HomeTopActions';
 import { PetCharacter } from '@/components/PetCharacter';
 import { ShopPanel } from '@/components/ShopPanel';
 import { useDailyPetReward } from '@/hooks/useDailyPetReward';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '@/navigation/RootNavigator';
 
 const PET_REWARD = 5;
 
@@ -37,7 +39,9 @@ const DEFAULT_PET: PetId = 'rottweiler';
 
 // TODO: 코인은 지금 화면 로컬 상태다. coin_ledger(Supabase)가 붙으면
 // 초기값을 서버에서 읽어오고 claim 시 원장에 기록하도록 바꿔야 한다.
-export function HomeScreen() {
+type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
+
+export function HomeScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { width: screenW, height: screenH } = useWindowDimensions();
   const [coins, setCoins] = useState(270);
@@ -119,6 +123,7 @@ export function HomeScreen() {
             iconHeight={40}
             size={68}
             accessibilityLabel="리포트"
+            onPress={() => navigation.navigate('ScreentimeDashboard')}
           />
           <GlassButton
             icon={homeImages.home}

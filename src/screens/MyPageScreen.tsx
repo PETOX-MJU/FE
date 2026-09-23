@@ -8,6 +8,7 @@ import {
   ScrollView,
   StatusBar,
   StyleSheet,
+  Switch,
   Text,
   View,
   useWindowDimensions,
@@ -16,7 +17,16 @@ import LinearGradient from 'react-native-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { HOME_BG_ASPECT, homeImages } from '@/assets/images';
-import { signOut } from '@/api/auth';
+import { hasSession, signOut } from '@/api/auth';
+import {
+  fetchNickname,
+  fetchNotificationSettings,
+  saveNotificationSettings,
+  updateNickname,
+  type NotificationSettings,
+} from '@/api/profile';
+import { ConfirmModal } from '@/components/ConfirmModal';
+import { EditTextModal } from '@/components/EditTextModal';
 import {
   SCREEN_HEADER_HEIGHT,
   SCREEN_HEADER_TOP,
@@ -25,8 +35,8 @@ import {
 import { PetSprite } from '@/components/PetSprite';
 import { screentime } from '@/features/screentime/onDevice';
 import type { PetId } from '@/constants/onboardingStrings';
-import { loadPetProfile } from '@/storage/petProfile';
-import { petoxTextBase } from '@/theme/petox';
+import { loadPetProfile, savePetProfile } from '@/storage/petProfile';
+import { petoxColors, petoxLayout, petoxTextBase } from '@/theme/petox';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'MyPage'>;
@@ -38,25 +48,23 @@ const PET_H = 137; // 펫 그림 높이 — 허스키_앞 기준
 const PLATE_GAP = 386 - (235 + 137); // 펫 발끝 ~ 이름판 top
 const PLATE_W = 199;
 const PLATE_H = 66;
-const PLATE_BOTTOM = 386 + 66 - 37; // 이름판 아래 = 설정 목록 기준선
+const FADE_H = 597; // 흰 그라데이션(Rectangle 1540) 높이
+const LIST_TOP_GAP = 473 - 452; // 이름판 아래 ~ 첫 섹션 제목 (시안 21dp)
 const DESIGN_H = 1023 - 37; // 프레임 높이(상태바 제외) — 화면이 더 짧으면 스크롤
 
-// 설정 목록(Group 106). y 는 모두 "글자 아랫선" 기준 피그마 프레임 좌표.
-// 제목은 18, 항목은 15 크기이고, 줄마다 들여쓰기가 시안에서 조금씩 다르다.
-const TITLE_LH = 22;
-const ITEM_LH = 18;
-const LIST_LEFT = 37; // 구분선 x
-const LIST_W = 342;
-
-type MenuItem = { label: string; left: number; color?: string; onPress: () => void };
-type MenuSection = {
-  title: string;
-  titleLeft: number;
-  titleBottom: number;
-  divider?: number; // 구분선 y (없으면 숨김)
-  itemsBottom?: number;
-  items: MenuItem[];
-};
+// 설정 목록 — 모든 줄을 같은 왼쪽 선(화면 여백 24, 헤더와 동일)에 맞춘다.
+type MenuRow =
+  | {
+      kind: 'links';
+      items: { label: string; color?: string; onPress: () => void }[];
+    }
+  | {
+      kind: 'toggle';
+      label: string;
+      value: boolean;
+      onChange: (v: boolean) => void;
+    };
+type MenuSection = { title: string; rows: MenuRow[] };
 
 const soon = (label: string) => () => Alert.alert(label, '준비 중이에요.');
 
@@ -89,87 +97,179 @@ export function MyPageScreen({ navigation }: Props) {
       .catch(() => {});
   }, []);
 
-  const onLogout = () =>
-    Alert.alert('로그아웃', '로그아웃할까요?', [
-      { text: '취소', style: 'cancel' },
-      {
-        text: '로그아웃',
-        onPress: async () => {
-          try {
-            await signOut();
-          } catch {
-            // 네트워크가 끊겨도 기기의 세션은 지워지므로 로그인 화면으로 보낸다.
-          }
-          navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
-        },
-      },
-    ]);
+  const [logoutOpen, setLogoutOpen] = useState(false);
+  const onLogout = () => setLogoutOpen(true);
+  const doLogout = async () => {
+    try {
+      await signOut();
+    } catch {
+      // 네트워크가 끊겨도 기기의 세션은 지워지므로 로그인 화면으로 보낸다.
+    }
+    setLogoutOpen(false);
+    navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+  };
 
-  // TODO: 각 항목의 상세 화면은 아직 없다 — 화면이 생기면 navigate 로 바꾼다.
+  // 개인 프로필·알림 설정 (서버).
+  // 로그인 여부는 세션으로 판단한다. 닉네임이 비어 있거나(가입 때 저장 실패 등)
+  // 불러오기에 실패해도 로그인 상태면 바꿀 수 있어야 한다.
+  const [signedIn, setSignedIn] = useState(false);
+  const [nickname, setNickname] = useState('');
+  const [notif, setNotif] = useState<NotificationSettings>({
+    missionAlert: true,
+    reportAlert: true,
+  });
+  const [editing, setEditing] = useState<'petName' | 'nickname' | null>(null);
+
+  useEffect(() => {
+    hasSession()
+      .then(ok => {
+        setSignedIn(ok);
+        if (!ok) return;
+        fetchNickname()
+          .then(n => setNickname(n ?? ''))
+          .catch(e => console.warn('닉네임을 불러오지 못했어요', e));
+        fetchNotificationSettings()
+          .then(n => n && setNotif(n))
+          .catch(e => console.warn('알림 설정을 불러오지 못했어요', e));
+      })
+      .catch(() => setSignedIn(false));
+  }, []);
+
+  const savePetName = async (name: string) => {
+    // TODO: 서버 pets 가 붙으면 pets.name 도 함께 바꾼다. 지금은 기기 저장만.
+    const profile = await loadPetProfile();
+    if (!profile) throw new Error('no pet profile');
+    await savePetProfile({ ...profile, name });
+    setPetName(name);
+    setEditing(null);
+  };
+
+  const saveNickname = async (name: string) => {
+    await updateNickname(name);
+    setNickname(name);
+    setEditing(null);
+  };
+
+  const toggleNotif = (key: keyof NotificationSettings) => (v: boolean) => {
+    if (!signedIn) {
+      Alert.alert('로그인이 필요해요', '로그인하면 알림을 설정할 수 있어요.');
+      return;
+    }
+    const next = { ...notif, [key]: v };
+    setNotif(next); // 먼저 반영하고, 실패하면 되돌린다
+    saveNotificationSettings(next).catch(() => {
+      setNotif(notif);
+      Alert.alert('저장 실패', '잠시 후 다시 시도해 주세요.');
+    });
+  };
+
+  // TODO: 감지 앱·목표·시간대 상세 화면은 아직 없다 — 화면이 생기면 navigate 로 바꾼다.
   // 회원탈퇴는 BE Edge Function(delete-account) 연동 시 확인 절차와 함께 붙인다.
   const sections: MenuSection[] = [
     {
       title: '펫 프로필',
-      titleLeft: 45,
-      titleBottom: 525,
-      itemsBottom: 551,
-      items: [{ label: '이름 변경', left: 83, onPress: soon('이름 변경') }],
+      rows: [
+        {
+          kind: 'links',
+          items: [
+            {
+              label: '이름 변경',
+              onPress: () =>
+                petName
+                  ? setEditing('petName')
+                  : Alert.alert(
+                      '이름 변경',
+                      '온보딩에서 펫을 먼저 등록해 주세요.',
+                    ),
+            },
+          ],
+        },
+      ],
     },
     {
       title: '개인 프로필',
-      titleLeft: 45,
-      titleBottom: 602,
-      divider: 604,
-      itemsBottom: 636,
-      items: [{ label: '닉네임 변경', left: 83, onPress: soon('닉네임 변경') }],
+      rows: [
+        {
+          kind: 'links',
+          items: [
+            {
+              label: '닉네임 변경',
+              onPress: () =>
+                signedIn
+                  ? setEditing('nickname')
+                  : Alert.alert(
+                      '로그인이 필요해요',
+                      '로그인하면 닉네임을 바꿀 수 있어요.',
+                    ),
+            },
+          ],
+        },
+      ],
     },
     {
       title: '사용자 관리',
-      titleLeft: 45,
-      titleBottom: 677,
-      divider: 680,
-      itemsBottom: 709,
-      items: [
-        { label: '감지 앱 관리', left: 46, onPress: soon('감지 앱 관리') },
-        { label: '목표 관리', left: 148, onPress: soon('목표 관리') },
-        { label: '시간대 설정', left: 238, onPress: soon('시간대 설정') },
+      rows: [
+        {
+          kind: 'links',
+          items: [
+            { label: '감지 앱 관리', onPress: soon('감지 앱 관리') },
+            { label: '목표 관리', onPress: soon('목표 관리') },
+            { label: '시간대 설정', onPress: soon('시간대 설정') },
+          ],
+        },
       ],
     },
-    { title: '알림 설정', titleLeft: 44, titleBottom: 755, divider: 759, items: [] },
     {
-      title: '권한 관리',
-      titleLeft: 46,
-      titleBottom: 834,
-      divider: 839,
-      itemsBottom: 868,
-      items: [
+      title: '알림 설정',
+      rows: [
         {
-          label: '사용 정보 접근',
-          left: 70,
-          onPress: () =>
-            screentime.available
-              ? screentime.openUsageAccessSettings()
-              : Linking.openSettings(),
+          kind: 'toggle',
+          label: '미션 알림',
+          value: notif?.missionAlert ?? true,
+          onChange: toggleNotif('missionAlert'),
         },
         {
-          label: '다른 앱 위에 표시',
-          left: 189,
-          onPress: () =>
-            Linking.sendIntent('android.settings.action.MANAGE_OVERLAY_PERMISSION').catch(
-              () => Linking.openSettings(),
-            ),
+          kind: 'toggle',
+          label: '주간 리포트 알림',
+          value: notif?.reportAlert ?? true,
+          onChange: toggleNotif('reportAlert'),
+        },
+      ],
+    },
+    {
+      title: '권한 관리',
+      rows: [
+        {
+          kind: 'links',
+          items: [
+            {
+              label: '사용 정보 접근',
+              onPress: () =>
+                screentime.available
+                  ? screentime.openUsageAccessSettings()
+                  : Linking.openSettings(),
+            },
+            {
+              label: '다른 앱 위에 표시',
+              onPress: () =>
+                Linking.sendIntent(
+                  'android.settings.action.MANAGE_OVERLAY_PERMISSION',
+                ).catch(() => Linking.openSettings()),
+            },
+          ],
         },
       ],
     },
     {
       title: '계정 정보 관리',
-      titleLeft: 45,
-      titleBottom: 914,
-      divider: 919,
-      itemsBottom: 946,
-      items: [
-        { label: '로그아웃', left: 63, color: '#577CE4', onPress: onLogout },
-        { label: '회원탈퇴', left: 139, color: '#E45759', onPress: soon('회원탈퇴') },
+      rows: [
+        {
+          kind: 'links',
+          items: [
+            { label: '로그아웃', color: '#577CE4', onPress: onLogout },
+            { label: '회원탈퇴', color: '#E45759', onPress: soon('회원탈퇴') },
+          ],
+        },
       ],
     },
   ];
@@ -178,8 +278,7 @@ export function MyPageScreen({ navigation }: Props) {
   const pageH = Math.max(screenH, insets.top + DESIGN_H);
   const bgW = Math.max(screenW, pageH * HOME_BG_ASPECT);
   const bgH = bgW / HOME_BG_ASPECT;
-  const listTop = insets.top + PLATE_BOTTOM; // 설정 목록 좌표의 0점(피그마 y=452)
-  const y = (designY: number) => designY - (PLATE_BOTTOM + 37);
+  const fadeTop = insets.top + 428 - 37;
 
   return (
     <View style={styles.root}>
@@ -187,7 +286,8 @@ export function MyPageScreen({ navigation }: Props) {
       <ScrollView
         bounces={false}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ minHeight: pageH }}>
+        contentContainerStyle={{ minHeight: pageH }}
+      >
         <Image
           source={homeImages.background}
           style={[styles.background, { width: bgW, height: bgH }]}
@@ -202,8 +302,10 @@ export function MyPageScreen({ navigation }: Props) {
             'rgba(255,255,255,1)',
           ]}
           locations={[0, 0.089277, 0.15224, 1]}
-          style={[styles.fade, { top: insets.top + 428 - 37 }]}
+          style={[styles.fade, { top: fadeTop }]}
         />
+        {/* 그라데이션 아래는 끝까지 흰색 (목록이 길어져도 배경이 비치지 않게) */}
+        <View style={[styles.fadeRest, { top: fadeTop + FADE_H }]} />
 
         <View style={{ paddingTop: insets.top }}>
           {/* 헤더: 뒤로가기 + 제목 */}
@@ -216,47 +318,85 @@ export function MyPageScreen({ navigation }: Props) {
           <ImageBackground
             source={require('../assets/images/mypage/name_plate.png')}
             style={styles.plate}
-            resizeMode="contain">
+            resizeMode="contain"
+          >
             <Text style={styles.petName} numberOfLines={1}>
               {petName || '내 펫'}
             </Text>
           </ImageBackground>
         </View>
 
-        {/* 설정 목록 — 시안 좌표를 그대로 옮긴 고정 배치 */}
-        <View style={[styles.list, { top: listTop }]}>
+        {/* 설정 목록 */}
+        <View style={[styles.list, { paddingBottom: insets.bottom + 40 }]}>
           {sections.map(sec => (
-            <React.Fragment key={sec.title}>
-              <Text
-                style={[
-                  styles.sectionTitle,
-                  { left: sec.titleLeft, top: y(sec.titleBottom) - TITLE_LH },
-                ]}>
-                {sec.title}
-              </Text>
-              {sec.divider !== undefined && (
-                <View style={[styles.divider, { top: y(sec.divider) }]} />
+            <View key={sec.title} style={styles.section}>
+              <Text style={styles.sectionTitle}>{sec.title}</Text>
+              <View style={styles.divider} />
+              {sec.rows.map((row, i) =>
+                row.kind === 'links' ? (
+                  <View key={i} style={styles.linkRow}>
+                    {row.items.map(item => (
+                      <Pressable
+                        key={item.label}
+                        accessibilityRole="button"
+                        onPress={item.onPress}
+                        hitSlop={10}
+                      >
+                        <Text
+                          style={[
+                            styles.item,
+                            item.color ? { color: item.color } : null,
+                          ]}
+                        >
+                          {item.label}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                ) : (
+                  <View key={i} style={styles.toggleRow}>
+                    <Text style={styles.item}>{row.label}</Text>
+                    <Switch
+                      value={row.value}
+                      onValueChange={row.onChange}
+                      trackColor={{ false: '#D9D9D9', true: petoxColors.green }}
+                      thumbColor={petoxColors.white}
+                    />
+                  </View>
+                ),
               )}
-              {sec.items.map(item => (
-                <Pressable
-                  key={item.label}
-                  accessibilityRole="button"
-                  onPress={item.onPress}
-                  hitSlop={10}
-                  style={[
-                    styles.itemHit,
-                    { left: item.left, top: y(sec.itemsBottom ?? 0) - ITEM_LH },
-                  ]}>
-                  <Text
-                    style={[styles.item, item.color ? { color: item.color } : null]}>
-                    {item.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </React.Fragment>
+            </View>
           ))}
         </View>
       </ScrollView>
+
+      <EditTextModal
+        visible={editing === 'petName'}
+        title="펫 이름 변경"
+        initialValue={petName}
+        placeholder="새 이름"
+        maxLength={10}
+        onCancel={() => setEditing(null)}
+        onSave={savePetName}
+      />
+      <EditTextModal
+        visible={editing === 'nickname'}
+        title="닉네임 변경"
+        initialValue={nickname}
+        placeholder="새 닉네임"
+        maxLength={12}
+        onCancel={() => setEditing(null)}
+        onSave={saveNickname}
+      />
+      <ConfirmModal
+        visible={logoutOpen}
+        title="로그아웃"
+        message="로그아웃할까요?"
+        confirmText="로그아웃"
+        confirmColor="#577CE4"
+        onCancel={() => setLogoutOpen(false)}
+        onConfirm={doLogout}
+      />
     </View>
   );
 }
@@ -271,30 +411,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sprite: { position: 'absolute', bottom: -SPRITE_BOTTOM_PAD },
-  fade: { position: 'absolute', left: 1, width: 411, height: 597 },
-  list: { position: 'absolute', left: 0, right: 0 },
-  sectionTitle: {
-    ...petoxTextBase,
+  fade: { position: 'absolute', left: 0, right: 0, height: FADE_H },
+  fadeRest: {
     position: 'absolute',
-    fontSize: 18,
-    lineHeight: TITLE_LH,
-    color: '#000000',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#FFFFFF',
   },
-  // 시안은 흰 1px 선이지만 흰 그라데이션 위에서 옅은 회색으로 보여 그 색을 쓴다.
-  divider: {
-    position: 'absolute',
-    left: LIST_LEFT,
-    width: LIST_W,
-    height: 1,
-    backgroundColor: '#E6E6E6',
+  list: {
+    marginTop: LIST_TOP_GAP,
+    paddingHorizontal: petoxLayout.screenPadding,
   },
-  itemHit: { position: 'absolute' },
-  item: {
-    ...petoxTextBase,
-    fontSize: 15,
-    lineHeight: ITEM_LH,
-    color: '#6C6C6C',
+  section: { marginBottom: 22 },
+  sectionTitle: { ...petoxTextBase, fontSize: 18, color: '#000000' },
+  divider: { height: 1, marginTop: 6, backgroundColor: '#E6E6E6' },
+  linkRow: { flexDirection: 'row', gap: 24, marginTop: 12 },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 6,
   },
+  item: { ...petoxTextBase, fontSize: 15, color: '#6C6C6C' },
   plate: {
     width: PLATE_W,
     height: PLATE_H,

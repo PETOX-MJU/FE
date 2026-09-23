@@ -27,6 +27,7 @@ import {
 } from '@/api/profile';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { EditTextModal } from '@/components/EditTextModal';
+import { renameServerPet } from '@/api/onboarding';
 import {
   SCREEN_HEADER_HEIGHT,
   SCREEN_HEADER_TOP,
@@ -136,10 +137,10 @@ export function MyPageScreen({ navigation }: Props) {
   }, []);
 
   const savePetName = async (name: string) => {
-    // TODO: 서버 pets 가 붙으면 pets.name 도 함께 바꾼다. 지금은 기기 저장만.
     const profile = await loadPetProfile();
     if (!profile) throw new Error('no pet profile');
     await savePetProfile({ ...profile, name });
+    await renameServerPet(name);
     setPetName(name);
     setEditing(null);
   };

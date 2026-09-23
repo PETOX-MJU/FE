@@ -1,6 +1,7 @@
 import { AuthError } from '@supabase/supabase-js';
 import { supabase } from '@/api/supabase';
 import { petoxStrings as S } from '@/constants/petoxStrings';
+import { hasServerPet } from '@/api/onboarding';
 import { loadPetProfile } from '@/storage/petProfile';
 
 // ADR-002: 로그인·회원가입은 FastAPI(/auth/signup)를 거치지 않고 Supabase Auth 를 직접 쓴다.
@@ -53,11 +54,14 @@ export async function hasSession(): Promise<boolean> {
 
 /**
  * 로그인된 뒤 어디로 보낼지. 온보딩(목표·시간대·캐릭터)을 끝냈으면 홈, 아니면 온보딩.
- * TODO: 지금은 기기(AsyncStorage)의 펫 프로필로 판단한다. 온보딩 결과를 서버(pets·profiles)에
- * 올리게 되면 "내 pets 행이 있는가"로 바꿔 계정 기준으로 판단할 것.
+ * 계정 기준으로 판단한다: 서버에 내 펫(pets)이 있으면 완료.
+ * 서버를 확인할 수 없을 때만 이 계정의 기기 저장값으로 판단한다.
+ * (이메일 인증 후 처음 로그인하는 새 계정은 서버에도 기기에도 펫이 없으니 온보딩으로 간다)
  */
 export async function routeAfterLogin(): Promise<'Home' | 'OnboardingWelcome'> {
   try {
+    const server = await hasServerPet();
+    if (server !== null) return server ? 'Home' : 'OnboardingWelcome';
     return (await loadPetProfile()) !== null ? 'Home' : 'OnboardingWelcome';
   } catch {
     return 'OnboardingWelcome';

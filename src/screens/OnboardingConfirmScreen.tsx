@@ -16,6 +16,7 @@ import { OnboardingHeader } from '@/components/OnboardingHeader';
 import { PetoxTextField } from '@/components/PetoxTextField';
 import { PetSprite } from '@/components/PetSprite';
 import { onboardingStrings as S } from '@/constants/onboardingStrings';
+import { saveOnboardingToServer } from '@/api/onboarding';
 import { savePetProfile } from '@/storage/petProfile';
 import { petoxColors, petoxLayout, petoxTextBase } from '@/theme/petox';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
@@ -43,7 +44,6 @@ export function OnboardingConfirmScreen({ navigation, route }: Props) {
 
     setSaving(true);
     try {
-      // TODO: 백엔드 연동 지점 — 서버에도 같은 내용을 올립니다.
       await savePetProfile({
         name: trimmed,
         pet,
@@ -52,7 +52,12 @@ export function OnboardingConfirmScreen({ navigation, route }: Props) {
         blockSlots,
         createdAt: new Date().toISOString(),
       });
-      console.log('[Petox] pet registered', trimmed);
+      // 서버에도 올린다 — 로그인할 때 온보딩 완료 여부를 계정 기준으로 판단하는 근거.
+      await saveOnboardingToServer({
+        petName: trimmed,
+        goalMinutes,
+        isDefaultCharacter: pet !== undefined,
+      });
       navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
     } catch {
       setSaving(false);
@@ -64,10 +69,12 @@ export function OnboardingConfirmScreen({ navigation, route }: Props) {
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         <ScrollView
           contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled">
+          keyboardShouldPersistTaps="handled"
+        >
           <OnboardingHeader
             step={4}
             total={4}

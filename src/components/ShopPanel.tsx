@@ -43,7 +43,9 @@ export function ShopPanel({ tailRight = 27, style }: Props) {
   const [gridW, setGridW] = useState(0);
   const listRef = useRef<FlatList<ShopTheme>>(null);
 
-  const theme = shopThemes[themeIndex];
+  // 테마 목록이 줄어들어도(빌드 중 Fast Refresh, 서버 목록 변경 등) 범위를 벗어나지 않게 맞춘다.
+  const safeIndex = Math.min(themeIndex, shopThemes.length - 1);
+  const theme = shopThemes[safeIndex];
   const itemSize = gridW > 0 ? (gridW - GAP) / 2 : 0;
 
   // 서버 카탈로그(가격·uuid)와 내 보유 목록. 패널이 열릴 때마다 새로 읽는다.
@@ -179,7 +181,7 @@ export function ShopPanel({ tailRight = 27, style }: Props) {
             {shopThemes.map((t, i) => (
               <View
                 key={t.id}
-                style={[styles.dot, i === themeIndex && styles.dotActive]}
+                style={[styles.dot, i === safeIndex && styles.dotActive]}
               />
             ))}
           </View>

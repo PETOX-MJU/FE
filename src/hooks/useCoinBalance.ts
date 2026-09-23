@@ -18,10 +18,17 @@ export function notifyCoinsChanged() {
 async function fetchBalance(): Promise<number | null> {
   const { data: auth } = await supabase.auth.getSession();
   if (!auth.session) return null; // 로그인 전
-  // PostgREST 집계(sum)는 프로젝트 설정에 따라 꺼져 있을 수 있어, 금액 열만 받아 여기서 더한다.
-  const { data, error } = await supabase.from('coin_ledger').select('amount');
-  if (error) throw error;
-  return (data ?? []).reduce((acc, row) => acc + (row.amount as number), 0);
+  // BE coin_balance RPC(ADR-32): 서버가 SUM 해서 숫자 하나만 돌려준다.
+  const { data, error } = await supabase.rpc('coin_balance');
+  if (!error) return Number(data ?? 0);
+  // 아직 마이그레이션이 안 올라간 서버면 예전 방식(원장을 받아 합산)으로 계산한다.
+  console.warn('coin_balance RPC 실패, 원장 합산으로 대체', error.message);
+  const ledger = await supabase.from('coin_ledger').select('amount');
+  if (ledger.error) throw ledger.error;
+  return (ledger.data ?? []).reduce(
+    (acc, row) => acc + (row.amount as number),
+    0,
+  );
 }
 
 /**

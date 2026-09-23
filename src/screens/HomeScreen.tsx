@@ -1,5 +1,6 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  AppState,
   Image,
   type ImageSourcePropType,
   Pressable,
@@ -11,6 +12,15 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { loadPetProfile } from '@/storage/petProfile';
+import {
+  nextMissingPermission,
+  openOverlaySettings,
+  openUsageSettings,
+  overlayPermissionText,
+  requestNotificationPermission,
+  syncOverlay,
+} from '@/features/overlay/overlay';
+import { ConfirmModal } from '@/components/ConfirmModal';
 import {
   HOME_BG_ASPECT,
   homeImages,
@@ -56,6 +66,32 @@ export function HomeScreen({ navigation }: Props) {
   const [petSource, setPetSource] = useState<ImageSourcePropType>(
     petImages[DEFAULT_PET],
   );
+  // ---- 펫 오버레이 (필수 기능) ----
+  // 홈에 올 때마다, 설정에서 돌아올 때마다 권한을 확인하고
+  // 빠진 권한이 있으면 안내 팝업, 다 있으면 서비스를 (다시) 시작한다.
+  const [permAsk, setPermAsk] = useState<'overlay' | 'usage' | null>(null);
+  const ensureOverlay = useCallback(async () => {
+    const missing = await nextMissingPermission();
+    setPermAsk(missing);
+    if (!missing) await syncOverlay();
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      requestNotificationPermission()
+        .catch(() => false)
+        .then(() => ensureOverlay())
+        .catch(() => {});
+    }, [ensureOverlay]),
+  );
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', st => {
+      if (st === 'active') ensureOverlay().catch(() => {});
+    });
+    return () => sub.remove();
+  }, [ensureOverlay]);
+
   useFocusEffect(
     useCallback(() => {
       loadPetProfile()
@@ -163,6 +199,20 @@ export function HomeScreen({ navigation }: Props) {
           />
         </View>
       </BackdropContext.Provider>
+
+      <ConfirmModal
+        visible={permAsk !== null}
+        title={permAsk ? overlayPermissionText[permAsk].title : ''}
+        message={permAsk ? overlayPermissionText[permAsk].message : undefined}
+        confirmText="설정 열기"
+        cancelText="나중에"
+        onCancel={() => setPermAsk(null)}
+        onConfirm={() => {
+          if (permAsk === 'overlay') openOverlaySettings();
+          else openUsageSettings();
+          setPermAsk(null);
+        }}
+      />
     </View>
   );
 }

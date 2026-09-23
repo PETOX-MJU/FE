@@ -1,24 +1,26 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState } from 'react';
 import {
   Image,
+  Pressable,
   StatusBar,
   StyleSheet,
   View,
   useWindowDimensions,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   HOME_BG_ASPECT,
   homeImages,
   petImages,
   type PetId,
-} from "@/assets/images";
-import { CoinBadge } from "@/components/CoinBadge";
-import { GlassButton } from "@/components/GlassButton";
-import { BackdropContext, type Backdrop } from "@/components/GlassSurface";
-import { HomeTopActions } from "@/components/HomeTopActions";
-import { PetCharacter } from "@/components/PetCharacter";
-import { useDailyPetReward } from "@/hooks/useDailyPetReward";
+} from '@/assets/images';
+import { CoinBadge } from '@/components/CoinBadge';
+import { GlassButton } from '@/components/GlassButton';
+import { BackdropContext, type Backdrop } from '@/components/GlassSurface';
+import { HomeTopActions } from '@/components/HomeTopActions';
+import { PetCharacter } from '@/components/PetCharacter';
+import { ShopPanel } from '@/components/ShopPanel';
+import { useDailyPetReward } from '@/hooks/useDailyPetReward';
 
 const PET_REWARD = 5;
 
@@ -27,10 +29,11 @@ const DESIGN_H = 917;
 const PET_X = 224.4; // 펫 스프라이트 왼쪽 위 — 배경 위 좌표
 const PET_Y = 546.5;
 const TOP_BAR_BELOW_STATUS = 36; // 상태바(32) 아래 36 → y 68
+const TOP_BAR_H = 50; // 상단 pill 높이
 const BOTTOM_BAR_BOTTOM = 50; // 홈 버튼 아래 여백 (917 - 839)
 
 // TODO: 온보딩에서 고른 캐릭터를 저장소(AsyncStorage/Supabase)에서 읽어와 넣기
-const DEFAULT_PET: PetId = "rottweiler";
+const DEFAULT_PET: PetId = 'rottweiler';
 
 // TODO: 코인은 지금 화면 로컬 상태다. coin_ledger(Supabase)가 붙으면
 // 초기값을 서버에서 읽어오고 claim 시 원장에 기록하도록 바꿔야 한다.
@@ -38,6 +41,7 @@ export function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { width: screenW, height: screenH } = useWindowDimensions();
   const [coins, setCoins] = useState(270);
+  const [shopOpen, setShopOpen] = useState(false);
   const { canClaim, claim } = useDailyPetReward();
 
   // 배경: 피그마처럼 화면 높이에 맞추고 왼쪽 정렬(오른쪽이 잘림).
@@ -53,7 +57,7 @@ export function HomeScreen() {
 
   const handlePetTap = () => {
     if (claim()) {
-      setCoins((prev) => prev + PET_REWARD);
+      setCoins(prev => prev + PET_REWARD);
     }
   };
 
@@ -76,12 +80,32 @@ export function HomeScreen() {
           style={[styles.pet, { left: PET_X * k, top: PET_Y * k }]}
         />
 
+        {shopOpen && (
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            accessibilityLabel="상점 닫기"
+            onPress={() => setShopOpen(false)}
+          />
+        )}
+
         <View
           style={[styles.topBar, { top: insets.top + TOP_BAR_BELOW_STATUS }]}
         >
           <CoinBadge amount={coins} />
-          <HomeTopActions />
+          <HomeTopActions
+            shopOpen={shopOpen}
+            onPressShop={() => setShopOpen(open => !open)}
+          />
         </View>
+
+        {shopOpen && (
+          <ShopPanel
+            style={[
+              styles.shopPanel,
+              { top: insets.top + TOP_BAR_BELOW_STATUS + TOP_BAR_H + 8 },
+            ]}
+          />
+        )}
 
         <View
           style={[
@@ -119,30 +143,35 @@ export function HomeScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#7EC4EE",
-    overflow: "hidden",
+    backgroundColor: '#7EC4EE',
+    overflow: 'hidden',
   },
   background: {
-    position: "absolute",
+    position: 'absolute',
     left: 0,
     top: 0,
   },
   pet: {
-    position: "absolute",
+    position: 'absolute',
   },
   topBar: {
-    position: "absolute",
+    position: 'absolute',
     right: 16,
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
   },
+  shopPanel: {
+    position: 'absolute',
+    left: 18,
+    right: 18,
+  },
   bottomBar: {
-    position: "absolute",
+    position: 'absolute',
     left: 43,
     right: 44,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
 });

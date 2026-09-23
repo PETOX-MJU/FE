@@ -8,6 +8,7 @@ export const homeImages = {
   heart: require('./home/ic_heart.png'), // 32 × 32
   storage: require('./home/ic_box.png'), // 보관함 36 × 36
   shop: require('./home/ic_shop.png'), // 상점 36 × 36
+  close: require('./home/ic_close.png'), // 상점 패널 닫기 36 × 36
   report: require('./home/ic_report.png'), // 리포트 36 × 40
   home: require('./home/ic_home.png'), // 홈 51 × 51
   character: require('./home/ic_character.png'), // 캐릭터 39 × 40

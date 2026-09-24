@@ -23,7 +23,7 @@ export const onboardingStrings = {
 
   // 2단계: 방지 시간대
   blockTitle: '숏폼 방지 시간대를\n설정해 볼까요?',
-  blockSubtitle: '추천 시간대',
+  blockSubtitle: '추천 시간대를 고르거나 직접 추가해 주세요 (여러 개 가능)',
   blockCustom: '+ 직접 설정',
 
   // 2단계 - 직접 설정 화면

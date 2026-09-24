@@ -33,9 +33,22 @@ export type RootStackParamList = {
   EmailConfirmWait: { email: string; nickname: string };
   OnboardingWelcome: { nickname?: string } | undefined;
   OnboardingGoal: undefined;
-  OnboardingBlockTime: { goalMinutes: number };
+  /** addSlot: 직접 설정 화면에서 고른 구간을 돌려받는다 */
+  /** replaceSlot: 수정한 경우 원래 구간 (빼고 addSlot 을 넣는다) */
+  OnboardingBlockTime: {
+    goalMinutes: number;
+    addSlot?: string;
+    replaceSlot?: string;
+  };
   /** 온보딩(goalMinutes) 또는 마이페이지 시간대 설정(fromSettings)에서 연다 */
-  OnboardingCustomTime: { goalMinutes?: number; fromSettings?: boolean };
+  OnboardingCustomTime: {
+    goalMinutes?: number;
+    fromSettings?: boolean;
+    /** 이미 고른 시간대 (타임라인에 옅게 표시하고 겹치면 알려 준다) */
+    existing?: string[];
+    /** 직접 설정한 구간을 고칠 때 원래 값 ("HH:00~HH:00") */
+    edit?: string;
+  };
   OnboardingApps: { goalMinutes: number; blockSlots: string[] };
   OnboardingCharacter: { goalMinutes: number; blockSlots: string[] };
   OnboardingPetPhoto: { goalMinutes: number; blockSlots: string[] };
@@ -54,7 +67,7 @@ export type RootStackParamList = {
   GoalSettings: undefined;
   DetectedApps: undefined;
   /** addSlot: 직접 추가 화면에서 고른 구간("HH:00~HH:00")을 돌려받는다 */
-  BlockTimeSettings: { addSlot?: string } | undefined;
+  BlockTimeSettings: { addSlot?: string; replaceSlot?: string } | undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();

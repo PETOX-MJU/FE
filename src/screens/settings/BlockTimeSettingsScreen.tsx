@@ -1,18 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { showDialog } from '@/components/AppDialog';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BoneButton } from '@/components/BoneButton';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { SlotGrid } from '@/components/SlotGrid';
+import { addSlot, fullyCovered, slotLabel } from '@/features/blockTime/slots';
 import { fetchBlockSlots, saveBlockSlots } from '@/api/settings';
-import { BLOCK_SLOTS } from '@/constants/onboardingStrings';
 import { petoxColors, petoxLayout, petoxTextBase } from '@/theme/petox';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BlockTimeSettings'>;
-
-const PRESET_IDS: string[] = BLOCK_SLOTS.map(s => s.id);
 
 /**
  * 마이페이지 > 시간대 설정. 온보딩 2단계와 같은 추천 시간대 카드 + 직접 추가한 시간대 목록.
@@ -34,22 +33,42 @@ export function BlockTimeSettingsScreen({ navigation, route }: Props) {
 
   // 직접 추가 화면에서 돌아오면 목록에 붙인다 (같은 구간은 한 번만)
   const added = route.params?.addSlot;
+  const replaced = route.params?.replaceSlot;
   useEffect(() => {
     if (!added) return;
-    setSlots(prev => (prev && !prev.includes(added) ? [...prev, added] : prev));
-    navigation.setParams({ addSlot: undefined });
-  }, [added, navigation]);
+    setSlots(prev => {
+      if (!prev) return prev;
+      // 수정이면 원래 구간을 빼고 새 구간을 넣는다
+      const base = replaced ? prev.filter(s => s !== replaced) : prev;
+      const r = addSlot(base, added);
+      if (r.removed.length > 0) {
+        showDialog({
+          title: '겹치는 시간대를 정리했어요',
+          message: `${r.removed
+            .map(slotLabel)
+            .join(', ')}은(는) ${added} 안에 들어가서 뺐어요.`,
+        });
+      }
+      return r.list;
+    });
+    navigation.setParams({ addSlot: undefined, replaceSlot: undefined });
+  }, [added, replaced, navigation]);
 
-  const toggle = (id: string) =>
-    setSlots(prev =>
-      prev
-        ? prev.includes(id)
-          ? prev.filter(v => v !== id)
-          : [...prev, id]
-        : prev,
-    );
+  // 켜려는 추천 시간대가 이미 고른 구간 안에 다 들어가면 켜지 않는다
+  const toggle = (id: string) => {
+    if (!slots) return;
+    if (slots.includes(id)) {
+      setSlots(slots.filter(v => v !== id));
+    } else if (fullyCovered(id, slots)) {
+      showDialog({
+        title: `${slotLabel(id)}은(는) 이미 포함돼 있어요`,
+        message: '고른 다른 시간대 안에 이 시간이 다 들어가 있어요.',
+      });
+    } else {
+      setSlots(addSlot(slots, id).list);
+    }
+  };
 
-  const custom = (slots ?? []).filter(s => !PRESET_IDS.includes(s));
   const changed =
     slots !== null &&
     (slots.length !== saved.length || slots.some(s => !saved.includes(s)));
@@ -77,52 +96,25 @@ export function BlockTimeSettingsScreen({ navigation, route }: Props) {
           이 시간대엔 숏폼을 보면 펫이 나타나요.
         </Text>
 
-        <Text style={styles.section}>추천 시간대</Text>
-        <View style={styles.cards}>
-          {BLOCK_SLOTS.map(slot => {
-            const on = slots?.includes(slot.id) ?? false;
-            return (
-              <Pressable
-                key={slot.id}
-                accessibilityRole="button"
-                accessibilityState={{ selected: on }}
-                onPress={() => toggle(slot.id)}
-                style={[styles.card, on && styles.cardOn]}
-              >
-                <Text style={styles.icon}>{slot.icon}</Text>
-                <View style={styles.cardText}>
-                  <Text style={styles.cardLabel}>{slot.label}</Text>
-                  <Text style={styles.cardRange}>{slot.range}</Text>
-                </View>
-              </Pressable>
-            );
-          })}
+        <View style={styles.grid}>
+          <SlotGrid
+            selected={slots ?? []}
+            onToggle={toggle}
+            onAdd={() =>
+              navigation.navigate('OnboardingCustomTime', {
+                fromSettings: true,
+                existing: slots ?? [],
+              })
+            }
+            onEdit={range =>
+              navigation.navigate('OnboardingCustomTime', {
+                fromSettings: true,
+                edit: range,
+                existing: (slots ?? []).filter(s => s !== range),
+              })
+            }
+          />
         </View>
-
-        <Text style={styles.section}>직접 설정한 시간대</Text>
-        {custom.length === 0 && <Text style={styles.empty}>아직 없어요</Text>}
-        {custom.map(range => (
-          <View key={range} style={styles.customRow}>
-            <Text style={styles.customRange}>{range}</Text>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`${range} 삭제`}
-              hitSlop={10}
-              onPress={() => toggle(range)}
-            >
-              <Text style={styles.remove}>삭제</Text>
-            </Pressable>
-          </View>
-        ))}
-        <Pressable
-          accessibilityRole="button"
-          onPress={() =>
-            navigation.navigate('OnboardingCustomTime', { fromSettings: true })
-          }
-          style={styles.addHit}
-        >
-          <Text style={styles.add}>+ 시간대 직접 추가</Text>
-        </Pressable>
       </ScrollView>
 
       <View style={styles.footer}>
@@ -142,6 +134,7 @@ export function BlockTimeSettingsScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: petoxColors.white },
   body: { paddingHorizontal: petoxLayout.screenPadding, paddingBottom: 24 },
+  grid: { marginTop: 20 },
   subtitle: {
     ...petoxTextBase,
     marginTop: 24,

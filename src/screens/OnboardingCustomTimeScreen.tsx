@@ -14,6 +14,13 @@ import { BoneButton } from '@/components/BoneButton';
 import { OnboardingHeader } from '@/components/OnboardingHeader';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { onboardingStrings as S } from '@/constants/onboardingStrings';
+import {
+  fullyCovered,
+  overlapping,
+  rangeHours,
+  slotHours,
+  slotLabel,
+} from '@/features/blockTime/slots';
 import { petoxColors, petoxLayout, petoxTextBase } from '@/theme/petox';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 
@@ -80,9 +87,17 @@ function HourWheel({ hours, value, onChange, scrollRef }: WheelProps) {
 }
 
 export function OnboardingCustomTimeScreen({ navigation, route }: Props) {
-  const { goalMinutes = 60, fromSettings = false } = route.params ?? {};
-  const [start, setStart] = useState(1);
-  const [end, setEnd] = useState(3);
+  const {
+    goalMinutes = 60,
+    fromSettings = false,
+    existing = [],
+    edit,
+  } = route.params ?? {};
+  const editing = edit ? rangeHours(edit) : null;
+  // 이미 고른 시간대가 덮는 시각 — 타임라인에 옅게 칠한다
+  const takenHours = new Set(existing.flatMap(slotHours));
+  const [start, setStart] = useState(editing?.start ?? 1);
+  const [end, setEnd] = useState(editing?.end ?? 3);
 
   const startRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
   const endRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
@@ -121,6 +136,9 @@ export function OnboardingCustomTimeScreen({ navigation, route }: Props) {
 
   const overnight = end <= start;
   const hours = overnight ? end + HOURS - start : end - start;
+  const range = `${pad(start)}~${pad(end)}`;
+  const overlaps = overlapping(range, existing);
+  const covered = fullyCovered(range, existing);
   const inRange = (h: number) =>
     overnight ? h >= start || h < end : h >= start && h < end;
 
@@ -172,7 +190,7 @@ export function OnboardingCustomTimeScreen({ navigation, route }: Props) {
         {/* 마이페이지 > 시간대 설정에서 열면 진행바 대신 일반 헤더 */}
         {fromSettings ? (
           <ScreenHeader
-            title="시간대 직접 추가"
+            title={edit ? '시간대 수정' : '시간대 직접 추가'}
             onBack={() => navigation.goBack()}
             style={styles.settingsHeader}
           />
@@ -216,6 +234,7 @@ export function OnboardingCustomTimeScreen({ navigation, route }: Props) {
               key={h}
               style={[
                 styles.slot,
+                !inRange(h) && takenHours.has(h) && styles.slotTaken,
                 inRange(h) && styles.slotOn,
                 h === HOURS - 1 && styles.slotLast,
               ]}
@@ -234,6 +253,14 @@ export function OnboardingCustomTimeScreen({ navigation, route }: Props) {
             hours,
           )}
         </Text>
+        {covered ? (
+          <Text style={styles.warn}>이미 고른 시간대 안에 있어요</Text>
+        ) : overlaps.length > 0 ? (
+          <Text style={styles.warn}>
+            {overlaps.map(slotLabel).join(', ')}과(와) 겹쳐요. 겹치는 시간은 한
+            번만 적용돼요
+          </Text>
+        ) : null}
         <View style={styles.howTo}>
           {S.customTimeHowTo.map(line => (
             <Text key={line} style={styles.howToText}>
@@ -245,17 +272,16 @@ export function OnboardingCustomTimeScreen({ navigation, route }: Props) {
 
         <View style={styles.spacer} />
 
+        {/* 고른 구간을 앞 화면 목록에 더한다 (추천 시간대와 함께 저장) */}
         <BoneButton
-          text={fromSettings ? '추가하기' : S.next}
+          text={edit ? '수정하기' : '추가하기'}
+          disabled={covered}
           onPress={() => {
-            const range = `${pad(start)}~${pad(end)}`;
+            const result = { addSlot: range, replaceSlot: edit };
             if (fromSettings) {
-              navigation.popTo('BlockTimeSettings', { addSlot: range });
+              navigation.popTo('BlockTimeSettings', result);
             } else {
-              navigation.navigate('OnboardingApps', {
-                goalMinutes,
-                blockSlots: [range],
-              });
+              navigation.popTo('OnboardingBlockTime', { goalMinutes, ...result });
             }
           }}
         />
@@ -332,6 +358,15 @@ const styles = StyleSheet.create({
   },
   slotLast: { borderRightWidth: 0 },
   slotOn: { backgroundColor: petoxColors.green },
+  // 이미 고른 다른 시간대
+  slotTaken: { backgroundColor: petoxColors.greenLight },
+  warn: {
+    ...petoxTextBase,
+    marginTop: 10,
+    textAlign: 'center',
+    fontSize: 13,
+    color: '#E0913A',
+  },
   axis: {
     marginTop: 6,
     flexDirection: 'row',

@@ -1,23 +1,64 @@
-import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BoneButton } from '@/components/BoneButton';
 import { OnboardingHeader } from '@/components/OnboardingHeader';
-import { BLOCK_SLOTS, onboardingStrings as S } from '@/constants/onboardingStrings';
+import { SlotGrid } from '@/components/SlotGrid';
+import { showDialog } from '@/components/AppDialog';
+import {
+  addSlot,
+  fullyCovered,
+  slotLabel,
+} from '@/features/blockTime/slots';
+import { onboardingStrings as S } from '@/constants/onboardingStrings';
 import { petoxColors, petoxLayout, petoxTextBase } from '@/theme/petox';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OnboardingBlockTime'>;
 
+/** 새 구간이 기존 시간대를 통째로 품어서 빼 줬다고 알린다 */
+function notifyMerged(removed: string[], range: string) {
+  showDialog({
+    title: '겹치는 시간대를 정리했어요',
+    message: `${removed.map(slotLabel).join(', ')}은(는) ${range} 안에 들어가서 뺐어요.`,
+  });
+}
+
 export function OnboardingBlockTimeScreen({ navigation, route }: Props) {
   const { goalMinutes } = route.params;
+  // 추천 시간대 id + 직접 설정한 구간("HH:00~HH:00")을 함께 담는다
   const [selected, setSelected] = useState<string[]>([]);
 
-  const toggle = (id: string) =>
-    setSelected(prev =>
-      prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id],
-    );
+  // 직접 설정 화면에서 돌아오면 목록에 더한다 (같은 구간은 한 번만)
+  const added = route.params.addSlot;
+  const replaced = route.params.replaceSlot;
+  useEffect(() => {
+    if (!added) return;
+    setSelected(prev => {
+      // 수정이면 원래 구간을 빼고 새 구간을 넣는다
+      const base = replaced ? prev.filter(s => s !== replaced) : prev;
+      const r = addSlot(base, added);
+      if (r.removed.length > 0) notifyMerged(r.removed, added);
+      return r.list;
+    });
+    navigation.setParams({ addSlot: undefined, replaceSlot: undefined });
+  }, [added, replaced, navigation]);
+
+
+  // 켜려는 추천 시간대가 이미 고른 구간 안에 다 들어가면 켜지 않는다
+  const toggle = (id: string) => {
+    if (selected.includes(id)) {
+      setSelected(selected.filter(v => v !== id));
+    } else if (fullyCovered(id, selected)) {
+      showDialog({
+        title: `${slotLabel(id)}은(는) 이미 포함돼 있어요`,
+        message: '고른 다른 시간대 안에 이 시간이 다 들어가 있어요.',
+      });
+    } else {
+      setSelected(addSlot(selected, id).list);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -28,30 +69,24 @@ export function OnboardingBlockTimeScreen({ navigation, route }: Props) {
         <Text style={styles.subtitle}>{S.blockSubtitle}</Text>
 
         <View style={styles.cards}>
-          {BLOCK_SLOTS.map(slot => {
-            const on = selected.includes(slot.id);
-            return (
-              <Pressable
-                key={slot.id}
-                accessibilityRole="button"
-                onPress={() => toggle(slot.id)}
-                style={[styles.card, on && styles.cardOn]}>
-                <Text style={styles.icon}>{slot.icon}</Text>
-                <View style={styles.cardText}>
-                  <Text style={styles.cardLabel}>{slot.label}</Text>
-                  <Text style={styles.cardRange}>{slot.range}</Text>
-                </View>
-              </Pressable>
-            );
-          })}
+          <SlotGrid
+            selected={selected}
+            onToggle={toggle}
+            onAdd={() =>
+              navigation.navigate('OnboardingCustomTime', {
+                goalMinutes,
+                existing: selected,
+              })
+            }
+            onEdit={range =>
+              navigation.navigate('OnboardingCustomTime', {
+                goalMinutes,
+                edit: range,
+                existing: selected.filter(s => s !== range),
+              })
+            }
+          />
         </View>
-
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => navigation.navigate('OnboardingCustomTime', { goalMinutes })}
-          style={styles.customHit}>
-          <Text style={styles.custom}>{S.blockCustom}</Text>
-        </Pressable>
 
         <View style={styles.spacer} />
 
@@ -91,39 +126,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: petoxColors.hint,
   },
-  // '추천 시간대' 소제목 바로 아래에 붙인다
-  cards: { marginTop: 14, flexDirection: 'row', gap: 12 },
-  card: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 12,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#BFE0BD',
-    backgroundColor: petoxColors.white,
-  },
-  cardOn: {
-    borderColor: petoxColors.green,
-    borderWidth: 2,
-    backgroundColor: '#F2F9F1',
-  },
-  icon: { fontSize: 18, marginRight: 8 },
-  cardText: { flexShrink: 1 },
-  // 브랜드 폰트는 Regular 한 종류뿐이라 fontWeight 를 주면 기본 폰트로 떨어집니다.
-  cardLabel: {
-    ...petoxTextBase,
-    fontSize: 13,
-    color: petoxColors.text,
-  },
-  cardRange: {
-    ...petoxTextBase,
-    marginTop: 3,
-    fontSize: 11,
-    color: petoxColors.greenDark,
-  },
-  customHit: { alignSelf: 'center', marginTop: 18, padding: 8 },
-  custom: { ...petoxTextBase, fontSize: 13, color: petoxColors.hint },
+  // 소제목 바로 아래에 붙인다
+  cards: { marginTop: 14 },
   spacer: { flex: 1, minHeight: 40 },
 });

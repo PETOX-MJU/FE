@@ -10,7 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { PetoxBlackButton } from '@/components/PetoxButtons';
-import { PetoxLogo } from '@/components/PetoxLogo';
+import { AuthHeader } from '@/components/AuthHeader';
 import { PetoxTextField } from '@/components/PetoxTextField';
 import { petoxStrings } from '@/constants/petoxStrings';
 import { isValidEmail } from '@/constants/validation';
@@ -62,8 +62,7 @@ export function EmailLoginScreen({ navigation }: Props) {
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled">
           {/* 상단: 로고 + 부제 */}
-          <PetoxLogo height={64} />
-          <Text style={styles.subtitle}>{petoxStrings.emailLoginSubtitle}</Text>
+          <AuthHeader text={petoxStrings.emailLoginSubtitle} />
 
           {/* 입력 폼 */}
           <PetoxTextField
@@ -116,14 +115,8 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     alignItems: 'center',
     paddingHorizontal: petoxLayout.screenPadding,
-    paddingTop: 146,
+    paddingTop: 0, // 로고 자리는 AuthHeader 가 잡는다 (로그인 첫 화면과 같은 위치)
     paddingBottom: 97,
-  },
-  subtitle: {
-    ...petoxTextBase,
-    marginTop: 34,
-    color: petoxColors.text,
-    fontSize: 15,
   },
   firstField: { marginTop: 42 },
   field: { marginTop: 12 },

@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { KakaoButton, PetoxBlackButton } from '@/components/PetoxButtons';
-import { PetoxLogo } from '@/components/PetoxLogo';
+import { AuthHeader } from '@/components/AuthHeader';
 import { petoxStrings } from '@/constants/petoxStrings';
-import { petoxColors, petoxFont, petoxLayout } from '@/theme/petox';
+import { petoxColors, petoxLayout } from '@/theme/petox';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
@@ -28,11 +28,9 @@ export function LoginScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      {/* 로고 + 태그라인 블록을 화면 위쪽 1/3 지점으로. */}
-      <View style={styles.spacerTop} />
-      <PetoxLogo />
-      <Text style={styles.tagline}>{tagline}</Text>
-      <View style={styles.spacerBottom} />
+      {/* 로고 + 문구 — 이메일 로그인 화면과 같은 자리 */}
+      <AuthHeader text={tagline} />
+      <View style={styles.spacer} />
 
       {/* 하단 액션 버튼. */}
       <KakaoButton text={petoxStrings.loginKakao} onPress={onKakaoLogin} />
@@ -53,13 +51,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: petoxLayout.screenPadding,
     paddingBottom: 24,
   },
-  spacerTop: { flex: 0.9 },
-  spacerBottom: { flex: 1.4 },
-  tagline: {
-    marginTop: 14,
-    color: petoxColors.hint,
-    fontFamily: petoxFont,
-    fontSize: 16,
-  },
+  spacer: { flex: 1 },
   gap: { height: 12 },
 });

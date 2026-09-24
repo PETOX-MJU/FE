@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BoneButton } from '@/components/BoneButton';
 import { WalkingDog } from '@/components/WalkingDog';
+import { fetchNickname } from '@/api/profile';
 import { onboardingStrings as S } from '@/constants/onboardingStrings';
 import { petoxColors, petoxLayout, petoxTextBase } from '@/theme/petox';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
@@ -18,7 +19,16 @@ const DOG_SIZE = 150;
  * 가입 폼으로 되돌아가지 않도록 뒤로가기 버튼은 두지 않습니다.
  */
 export function OnboardingWelcomeScreen({ navigation, route }: Props) {
-  const nickname = route.params?.nickname?.trim();
+  // 가입 직후엔 파라미터로 받고, 이메일 인증 후 로그인해서 온 경우엔 계정에서 읽는다.
+  const [nickname, setNickname] = useState(route.params?.nickname?.trim());
+  useEffect(() => {
+    if (nickname) return;
+    fetchNickname()
+      .then(n => n && setNickname(n))
+      .catch(() => {});
+    // 처음 한 번만
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>

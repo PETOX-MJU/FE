@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { showDialog } from '@/components/AppDialog';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BoneButton } from '@/components/BoneButton';
@@ -41,7 +42,10 @@ export function GoalSettingsScreen({ navigation }: Props) {
       await saveGoalMinutes(minutes);
       navigation.goBack();
     } catch {
-      Alert.alert('저장 실패', '잠시 후 다시 시도해 주세요.');
+      showDialog({
+        title: '저장 실패',
+        message: '잠시 후 다시 시도해 주세요.',
+      });
       setSaving(false);
     }
   };
@@ -52,7 +56,7 @@ export function GoalSettingsScreen({ navigation }: Props) {
       <View style={styles.body}>
         <Text style={styles.title}>하루 숏폼 시청 목표</Text>
         <Text style={styles.subtitle}>
-          하루 허용량이에요. 이 시간을 넘기면 펫이 나타나요.
+          하루 목표 시청 시간이에요. 대시보드에서 목표와 비교해 보여 드려요.
         </Text>
 
         <View style={styles.stepper}>
@@ -152,7 +156,7 @@ const styles = StyleSheet.create({
     lineHeight: 28,
     fontWeight: '700',
   },
-  amount: { ...petoxTextBase, fontSize: 22, color: petoxColors.text },
+  amount: { ...petoxTextBase, fontSize: 26, color: petoxColors.text },
   chips: {
     marginTop: 36,
     flexDirection: 'row',

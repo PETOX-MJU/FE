@@ -19,6 +19,7 @@ import type { RootStackParamList } from '@/navigation/RootNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OnboardingCustomTime'>;
 
+// 타임라인 24칸 = 0시~24시. 칸 h 는 h:00 ~ h+1:00 이라 끝 시각은 24(= 자정)까지 간다.
 const HOURS = 24;
 const BOX_H = 46; // 시각 박스 = 휠 한 칸 높이
 
@@ -86,9 +87,10 @@ export function OnboardingCustomTimeScreen({ navigation, route }: Props) {
   const startRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
   const endRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
 
-  // 시작은 마지막 시각 앞까지, 끝은 시작 다음부터.
-  const startHours = Array.from({ length: HOURS - 1 }, (_, i) => i); // 0~22
-  const endHours = Array.from({ length: HOURS - 1 }, (_, i) => i + 1); // 1~23
+  // 시작 0~23시, 끝 1~24시 (마지막 칸 23:00~24:00 도 고를 수 있게).
+  // 끝이 시작보다 이르면 자정을 넘겨 다음날까지 이어지는 구간이다 (예: 23:00 ~ 02:00).
+  const startHours = Array.from({ length: HOURS }, (_, i) => i); // 0~23
+  const endHours = Array.from({ length: HOURS }, (_, i) => i + 1); // 1~24
 
   /** 타임라인을 끌어 값이 바뀌면 휠도 같은 위치로 옮깁니다. */
   const syncWheels = (s: number, e: number) => {
@@ -96,25 +98,31 @@ export function OnboardingCustomTimeScreen({ navigation, route }: Props) {
     endRef.current?.scrollTo({ y: (e - 1) * BOX_H, animated: true });
   };
 
+  // 시작 = 끝(0시간)만 막고, 나머지는 끝이 더 일러도 그대로 둔다 → 자정 넘김
   const applyStart = (h: number) => {
-    const s = clamp(h, 0, HOURS - 2);
-    const e = Math.max(end, s + 1);
+    const s = clamp(h, 0, HOURS - 1);
     setStart(s);
-    setEnd(e);
-    if (e !== end) {
+    if (s === end % HOURS) {
+      const e = s + 1;
+      setEnd(e);
       endRef.current?.scrollTo({ y: (e - 1) * BOX_H, animated: true });
     }
   };
 
   const applyEnd = (h: number) => {
-    const e = clamp(h, 1, HOURS - 1);
-    const s = Math.min(start, e - 1);
+    const e = clamp(h, 1, HOURS);
     setEnd(e);
-    setStart(s);
-    if (s !== start) {
+    if (e % HOURS === start) {
+      const s = e - 1;
+      setStart(s);
       startRef.current?.scrollTo({ y: s * BOX_H, animated: true });
     }
   };
+
+  const overnight = end <= start;
+  const hours = overnight ? end + HOURS - start : end - start;
+  const inRange = (h: number) =>
+    overnight ? h >= start || h < end : h >= start && h < end;
 
   // 드래그로 구간 선택. locationX 는 눌린 자식 칸 기준이라 부정확하므로
   // 트랙의 화면상 위치를 재두고 제스처의 절대 좌표로 계산합니다.
@@ -140,7 +148,7 @@ export function OnboardingCustomTimeScreen({ navigation, route }: Props) {
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: (_e, g) => {
-        const h = clamp(hourAtScreenX(g.x0), 0, HOURS - 2);
+        const h = hourAtScreenX(g.x0);
         anchor.current = h;
         setStart(h);
         setEnd(h + 1);
@@ -150,7 +158,7 @@ export function OnboardingCustomTimeScreen({ navigation, route }: Props) {
         const h = hourAtScreenX(g.moveX);
         const a = anchor.current;
         const s = Math.min(a, h);
-        const e = clamp(Math.max(a, h) + 1, s + 1, HOURS - 1);
+        const e = clamp(Math.max(a, h) + 1, s + 1, HOURS);
         setStart(s);
         setEnd(e);
         syncWheels(s, e);
@@ -208,7 +216,7 @@ export function OnboardingCustomTimeScreen({ navigation, route }: Props) {
               key={h}
               style={[
                 styles.slot,
-                h >= start && h < end && styles.slotOn,
+                inRange(h) && styles.slotOn,
                 h === HOURS - 1 && styles.slotLast,
               ]}
             />
@@ -217,6 +225,22 @@ export function OnboardingCustomTimeScreen({ navigation, route }: Props) {
         <View style={styles.axis}>
           <Text style={styles.axisLabel}>{S.customTimeStartLabel}</Text>
           <Text style={styles.axisLabel}>{S.customTimeEndLabel}</Text>
+        </View>
+
+        {/* 고른 구간 요약 + 사용법 */}
+        <Text style={styles.summary}>
+          {S.customTimeSummary(
+            `${pad(start)} ~ ${overnight ? '다음날 ' : ''}${pad(end)}`,
+            hours,
+          )}
+        </Text>
+        <View style={styles.howTo}>
+          {S.customTimeHowTo.map(line => (
+            <Text key={line} style={styles.howToText}>
+              {'· '}
+              {line}
+            </Text>
+          ))}
         </View>
 
         <View style={styles.spacer} />
@@ -260,6 +284,7 @@ const styles = StyleSheet.create({
     ...petoxTextBase,
     marginTop: 10,
     fontSize: 13,
+    lineHeight: 19,
     color: petoxColors.hint,
   },
   timeRow: {
@@ -318,6 +343,27 @@ const styles = StyleSheet.create({
     ...petoxTextBase,
     fontSize: 11,
     color: petoxColors.text,
+  },
+  summary: {
+    ...petoxTextBase,
+    marginTop: 28,
+    textAlign: 'center',
+    fontSize: 17,
+    color: petoxColors.greenDark,
+  },
+  howTo: {
+    marginTop: 18,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    backgroundColor: '#F2F9F1',
+    gap: 4,
+  },
+  howToText: {
+    ...petoxTextBase,
+    fontSize: 13,
+    lineHeight: 19,
+    color: petoxColors.hint,
   },
   spacer: { flex: 1, minHeight: 40 },
 });

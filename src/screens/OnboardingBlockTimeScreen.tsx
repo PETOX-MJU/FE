@@ -91,7 +91,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: petoxColors.hint,
   },
-  cards: { marginTop: 32, flexDirection: 'row', gap: 12 },
+  // '추천 시간대' 소제목 바로 아래에 붙인다
+  cards: { marginTop: 14, flexDirection: 'row', gap: 12 },
   card: {
     flex: 1,
     flexDirection: 'row',

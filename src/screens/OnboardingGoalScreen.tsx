@@ -67,7 +67,7 @@ export function OnboardingGoalScreen({ navigation }: Props) {
           })}
         </View>
 
-        <Text style={styles.hint}>{S.goalHint}</Text>
+        <Text style={styles.hint}>{S.goalHint(minutes)}</Text>
 
         <View style={styles.spacer} />
 
@@ -124,10 +124,10 @@ const styles = StyleSheet.create({
     lineHeight: 28,
     fontWeight: '700',
   },
+  // 브랜드 폰트는 Regular 한 종류뿐이라 fontWeight 를 주면 기본 폰트로 떨어진다 — 크기로만 강조
   amount: {
     ...petoxTextBase,
-    fontSize: 22,
-    fontWeight: '700',
+    fontSize: 26,
     color: petoxColors.text,
   },
   chips: {
@@ -155,8 +155,8 @@ const styles = StyleSheet.create({
     ...petoxTextBase,
     marginTop: 26,
     textAlign: 'center',
-    fontSize: 13,
-    color: '#B9C7B8',
+    fontSize: 14,
+    color: petoxColors.greenDark,
   },
   spacer: { flex: 1, minHeight: 40 },
 });

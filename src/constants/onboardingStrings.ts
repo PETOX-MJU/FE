@@ -10,8 +10,16 @@ export const onboardingStrings = {
 
   // 1단계: 사용 목표
   goalTitle: '하루에 숏폼 시청 목표를\n설정해 볼까요?',
-  goalSubtitle: '하루 허용량입니다. 추후 수정 가능',
-  goalHint: '~~ 해당 시간이 넘어가면 펫이 나옵니다 ~~',
+  goalSubtitle: '하루 목표 시청 시간이에요. 마이페이지에서 언제든 바꿀 수 있어요.',
+  /** 고른 시간에 따라 펫이 한마디 */
+  goalHint: (min: number) =>
+    min <= 30
+      ? '와, 대단한 결심이에요! 펫이 엄청 좋아할 거예요'
+      : min <= 60
+        ? '딱 좋은 목표예요! 남는 시간엔 펫이랑 놀아요'
+        : min <= 120
+          ? '조금씩 줄여 봐요, 펫이 옆에서 응원할게요'
+          : '처음엔 여유 있게 시작해도 괜찮아요',
 
   // 2단계: 방지 시간대
   blockTitle: '숏폼 방지 시간대를\n설정해 볼까요?',
@@ -19,9 +27,16 @@ export const onboardingStrings = {
   blockCustom: '+ 직접 설정',
 
   // 2단계 - 직접 설정 화면
-  customTimeSubtitle: '펫이 나타나는 시간대입니다. 추후 수정 가능',
+  customTimeSubtitle: '숏폼을 특히 참고 싶은 시간을 골라 주세요.\n나중에 마이페이지에서 바꿀 수 있어요.',
+  customTimeSummary: (range: string, hours: number) =>
+    `매일 ${range}  ·  ${hours}시간`,
+  customTimeHowTo: [
+    '시각을 위아래로 굴려서 시작·끝을 고르거나',
+    '아래 막대를 손가락으로 쭉 끌어서 칠해 보세요',
+    '끝을 시작보다 이르게 고르면 새벽까지 이어져요 (예: 23:00 ~ 02:00)',
+  ],
   customTimeStartLabel: '0시',
-  customTimeEndLabel: '23시',
+  customTimeEndLabel: '24시',
 
   // 3단계: 캐릭터 선택
   characterTitle: '캐릭터를 설정해 주세요',

@@ -1,6 +1,11 @@
 /** 로그인 플로우 문구 — fe_mk_1 의 res/values/strings.xml 에서 옮겨왔습니다. */
 export const petoxStrings = {
-  loginTagline: '펫 톡스',
+  /** 로그인 화면 로고 밑 한 줄 — 들어올 때마다 하나씩 바뀐다 */
+  loginTaglines: [
+    '숏폼 대신, 내 펫과 함께하는 시간',
+    '펫이 지켜보는 디지털 디톡스',
+    '스크롤은 줄이고, 펫은 키우고',
+  ],
   loginKakao: '카카오 로그인',
   loginEmail: '이메일 로그인',
 

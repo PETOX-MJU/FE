@@ -101,7 +101,11 @@ export function BoneButton({
           {text}
         </Text>
         {icon !== undefined && (
-          <Image source={icon} style={styles.icon} resizeMode="contain" />
+          <Image
+            source={icon}
+            style={[styles.icon, variant === 'outline' && styles.iconOutline]}
+            resizeMode="contain"
+          />
         )}
       </View>
     </Pressable>
@@ -120,11 +124,14 @@ const styles = StyleSheet.create({
   knob: { position: 'absolute' },
   labelRow: { flexDirection: 'row', alignItems: 'center' },
   icon: { width: 20, height: 17, marginLeft: 5 },
+  // 단색 아이콘이라 글씨와 같은 색으로 칠한다
+  iconOutline: { tintColor: petoxColors.greenDark },
   label: {
     fontFamily: petoxFont,
     fontSize: 17,
     fontWeight: '600',
     color: petoxColors.white,
   },
-  labelOutline: { color: petoxColors.text },
+  // 보조 버튼(흰 바탕 + 초록 테두리)은 글씨도 테두리와 같은 초록 계열로 — 검정은 너무 진했다
+  labelOutline: { color: petoxColors.greenDark },
 });

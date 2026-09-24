@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -9,6 +8,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { showDialog } from '@/components/AppDialog';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BoneButton } from '@/components/BoneButton';
@@ -61,7 +61,7 @@ export function OnboardingConfirmScreen({ navigation, route }: Props) {
       navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
     } catch {
       setSaving(false);
-      Alert.alert('저장 실패', S.confirmErrorSave);
+      showDialog({ title: '저장 실패', message: S.confirmErrorSave });
     }
   };
 

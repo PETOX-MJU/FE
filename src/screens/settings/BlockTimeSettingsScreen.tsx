@@ -1,12 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Alert,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { showDialog } from '@/components/AppDialog';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BoneButton } from '@/components/BoneButton';
@@ -67,7 +61,10 @@ export function BlockTimeSettingsScreen({ navigation, route }: Props) {
       await saveBlockSlots(slots);
       navigation.goBack();
     } catch {
-      Alert.alert('저장 실패', '온보딩을 마친 뒤에 바꿀 수 있어요.');
+      showDialog({
+        title: '저장 실패',
+        message: '온보딩을 마친 뒤에 바꿀 수 있어요.',
+      });
       setSaving(false);
     }
   };

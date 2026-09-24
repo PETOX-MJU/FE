@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { showDialog } from '@/components/AppDialog';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppPicker } from '@/components/AppPicker';
@@ -40,7 +41,10 @@ export function DetectedAppsScreen({ navigation }: Props) {
       syncOverlay().catch(() => {}); // 펫 오버레이가 바로 새 목록을 보도록
       navigation.goBack();
     } catch {
-      Alert.alert('저장 실패', '잠시 후 다시 시도해 주세요.');
+      showDialog({
+        title: '저장 실패',
+        message: '잠시 후 다시 시도해 주세요.',
+      });
       setSaving(false);
     }
   };

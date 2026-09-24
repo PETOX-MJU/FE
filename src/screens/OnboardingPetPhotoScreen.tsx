@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Alert,
   Image,
   PermissionsAndroid,
   Platform,
@@ -9,6 +8,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { showDialog } from '@/components/AppDialog';
 import {
   launchCamera,
   launchImageLibrary,
@@ -34,7 +34,7 @@ export function OnboardingPetPhotoScreen({ navigation, route }: Props) {
   const applyResult = (res: ImagePickerResponse) => {
     if (res.didCancel) return;
     if (res.errorCode) {
-      Alert.alert('사진을 불러오지 못했어요', res.errorMessage ?? res.errorCode);
+      showDialog({ title: '사진을 불러오지 못했어요', message: res.errorMessage ?? res.errorCode });
       return;
     }
     const uri = res.assets?.[0]?.uri;
@@ -58,7 +58,7 @@ export function OnboardingPetPhotoScreen({ navigation, route }: Props) {
 
   const takePhoto = async () => {
     if (!(await ensureCameraPermission())) {
-      Alert.alert('카메라 권한이 필요해요', '설정에서 권한을 허용해 주세요.');
+      showDialog({ title: '카메라 권한이 필요해요', message: '설정에서 권한을 허용해 주세요.' });
       return;
     }
     const res = await launchCamera({

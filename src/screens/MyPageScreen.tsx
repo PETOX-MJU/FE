@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   Image,
-  ImageBackground,
   Linking,
   Pressable,
   ScrollView,
@@ -354,15 +353,17 @@ export function MyPageScreen({ navigation }: Props) {
           <View style={styles.petStage}>
             <PetSprite pet={pet} size={SPRITE_SIZE} style={styles.sprite} />
           </View>
-          <ImageBackground
-            source={require('../assets/images/mypage/name_plate.png')}
-            style={styles.plate}
-            resizeMode="contain"
-          >
+          {/* 이름판: RN 0.87 에서 ImageBackground 가 곧 없어져서 View + 뒤에 깐 Image 로 */}
+          <View style={styles.plate}>
+            <Image
+              source={require('../assets/images/mypage/name_plate.png')}
+              style={styles.plateImage}
+              resizeMode="contain"
+            />
             <Text style={styles.petName} numberOfLines={1}>
               {petName || '내 펫'}
             </Text>
-          </ImageBackground>
+          </View>
         </View>
 
         {/* 설정 목록 */}
@@ -491,6 +492,11 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   item: { ...petoxTextBase, fontSize: 15, color: '#6C6C6C' },
+  plateImage: {
+    ...StyleSheet.absoluteFill,
+    width: undefined,
+    height: undefined,
+  },
   plate: {
     width: PLATE_W,
     height: PLATE_H,

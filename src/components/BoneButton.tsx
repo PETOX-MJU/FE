@@ -14,6 +14,7 @@ const HEIGHT = 64;
 const KNOB = 34; // 양 끝 돌기(원) 지름
 const BAR_INSET = 12; // 중앙 막대의 위아래 여백
 const BORDER = 2;
+const DISABLED_GREEN = '#CEE7CD'; // petoxColors.green(#85C482) 40% on white
 
 type Props = {
   text: string;
@@ -39,7 +40,9 @@ export function BoneButton({
   style,
   disabled = false,
 }: Props) {
-  const green = petoxColors.green;
+  // 비활성은 투명도 대신 "흰 배경 위 40% 초록"과 같은 연한 단색으로 칠한다.
+  // 안드로이드는 부모 opacity 를 조각(막대·돌기)마다 따로 먹여서, 겹친 부분이 진하게 보였다.
+  const green = disabled ? DISABLED_GREEN : petoxColors.green;
   const shape = (color: string, inset: number) => (
     <>
       <View
@@ -83,10 +86,11 @@ export function BoneButton({
       onPress={onPress}
       disabled={disabled}
       accessibilityState={{ disabled }}
+      // 눌렀을 때 opacity 도 조각별로 먹지 않게 한 장으로 합쳐서 그린다
+      needsOffscreenAlphaCompositing
       style={({ pressed }) => [
         styles.container,
         pressed && styles.pressed,
-        disabled && styles.disabled,
         style,
       ]}>
       {shape(green, 0)}
@@ -112,7 +116,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   pressed: { opacity: 0.85 },
-  disabled: { opacity: 0.4 },
   bar: { position: 'absolute', borderRadius: 24 },
   knob: { position: 'absolute' },
   labelRow: { flexDirection: 'row', alignItems: 'center' },

@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Alert,
   FlatList,
   Image,
   Pressable,
   StyleSheet,
   Text,
   View,
+  type ImageSourcePropType,
   type LayoutChangeEvent,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -32,6 +32,7 @@ import {
   themeProgress,
 } from '@/features/shop/progress';
 import { supabase } from '@/api/supabase';
+import { ConfirmModal } from '@/components/ConfirmModal';
 import { shopThemes, type ShopItem, type ShopTheme } from '@/data/shop';
 import { notifyCoinsChanged, useCoinBalance } from '@/hooks/useCoinBalance';
 import { fonts } from '@/theme/fonts';
@@ -70,6 +71,23 @@ export function ShopPanel({ tailRight = 27, style }: Props) {
   const [buying, setBuying] = useState(false);
   const { coins } = useCoinBalance();
 
+  // 앱 스타일 팝업 하나를 내용만 바꿔 가며 쓴다 (기본 Alert 대신)
+  type Dialog = {
+    title: string;
+    message?: string;
+    image?: ImageSourcePropType;
+    confirmText?: string;
+    confirmColor?: string;
+    /** 있으면 취소 + 확인 두 버튼, 없으면 확인 하나 */
+    onConfirm?: () => Promise<void>;
+  };
+  const [dialog, setDialog] = useState<Dialog | null>(null);
+  const notice = (
+    title: string,
+    message?: string,
+    image?: ImageSourcePropType,
+  ) => setDialog({ title, message, image });
+
   const loadShop = useCallback(async () => {
     try {
       setShop(await fetchShopState());
@@ -100,61 +118,64 @@ export function ShopPanel({ tailRight = 27, style }: Props) {
   const requireLogin = async () => {
     const { data: auth } = await supabase.auth.getSession();
     if (auth.session) return true;
-    Alert.alert(
-      '로그인이 필요해요',
-      '로그인하면 코인으로 아이템을 살 수 있어요.',
-    );
+    notice('로그인이 필요해요', '로그인하면 코인으로 아이템을 살 수 있어요.');
     return false;
   };
 
   /** 확인 → 서버 구매 → 잔액·상점·홈 배경 갱신. 성공하면 onBought 실행. */
   const purchase = (
-    entry: { name: string },
+    entry: { name: string; image?: ImageSourcePropType },
     server: ServerItem,
     onBought?: () => Promise<void>,
   ) => {
     const balance = coins ?? 0;
     if (balance < server.price) {
-      Alert.alert(
+      notice(
         '코인이 부족해요',
         `${server.price}코인이 필요해요. (지금 ${balance}코인)`,
+        entry.image,
       );
       return;
     }
-    Alert.alert(
-      '구매할까요?',
-      `${entry.name}을(를) ${server.price}코인에 구매할까요?`,
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '구매',
-          onPress: async () => {
-            setBuying(true);
-            try {
-              await buyItem(server.id);
-              await onBought?.();
-              Alert.alert('구매 완료', `${entry.name}을(를) 샀어요!`);
-            } catch (e) {
-              if (e instanceof NotEnoughCoinsError) {
-                Alert.alert(
-                  '코인이 부족해요',
-                  '잔액이 바뀌었어요. 다시 확인해 주세요.',
-                );
-              } else if (e instanceof ShopRuleError) {
-                Alert.alert(entry.name, RULE_TEXT[e.rule]);
-              } else {
-                Alert.alert('구매 실패', '잠시 후 다시 시도해 주세요.');
-              }
-            } finally {
-              notifyCoinsChanged();
-              notifyShopChanged();
-              await loadShop();
-              setBuying(false);
-            }
-          },
-        },
-      ],
-    );
+    setDialog({
+      title: '구매할까요?',
+      message: `${entry.name}을(를) ${server.price}코인에 구매할까요?`,
+      image: entry.image,
+      confirmText: '구매',
+      onConfirm: async () => {
+        setBuying(true);
+        let result: Dialog;
+        try {
+          await buyItem(server.id);
+          await onBought?.();
+          result = {
+            title: '구매 완료',
+            message: `${entry.name}을(를) 샀어요!`,
+            image: entry.image,
+          };
+        } catch (e) {
+          if (e instanceof NotEnoughCoinsError) {
+            result = {
+              title: '코인이 부족해요',
+              message: '잔액이 바뀌었어요. 다시 확인해 주세요.',
+            };
+          } else if (e instanceof ShopRuleError) {
+            result = { title: entry.name, message: RULE_TEXT[e.rule] };
+          } else {
+            result = {
+              title: '구매 실패',
+              message: '잠시 후 다시 시도해 주세요.',
+            };
+          }
+        } finally {
+          notifyCoinsChanged();
+          notifyShopChanged();
+          await loadShop();
+          setBuying(false);
+        }
+        setDialog(result);
+      },
+    });
   };
 
   // 테마: 안 가졌으면 구매(사면 바로 적용), 가졌으면 적용 ↔ 기본 테마로 되돌리기
@@ -162,7 +183,7 @@ export function ShopPanel({ tailRight = 27, style }: Props) {
     if (buying || !(await requireLogin())) return;
     const server = shop?.itemsByName.get(t.name);
     if (!server) {
-      Alert.alert(t.name, '아직 판매 준비 중인 테마예요.');
+      notice(t.name, '아직 판매 준비 중인 테마예요.', t.preview);
       return;
     }
     const themeIds = serverThemeIds(shop!);
@@ -171,11 +192,13 @@ export function ShopPanel({ tailRight = 27, style }: Props) {
         await equipTheme(isEquipped(t) ? null : server.id, themeIds);
         await loadShop();
       } catch {
-        Alert.alert('테마 적용 실패', '잠시 후 다시 시도해 주세요.');
+        notice('테마 적용 실패', '잠시 후 다시 시도해 주세요.');
       }
       return;
     }
-    purchase(t, server, () => equipTheme(server.id, themeIds));
+    purchase({ name: t.name, image: t.preview }, server, () =>
+      equipTheme(server.id, themeIds),
+    );
   };
 
   // 아이템: 테마를 가져야 하고, 앞 단계부터 순서대로
@@ -186,26 +209,30 @@ export function ShopPanel({ tailRight = 27, style }: Props) {
   ) => {
     if (buying || !(await requireLogin())) return;
     if (isOwned(item)) {
-      Alert.alert(item.name, '이미 가지고 있어요.');
+      notice(item.name, '이미 가지고 있어요.', item.thumbnail);
       return;
     }
     const server = shop?.itemsByName.get(item.name);
     if (!server) {
       // 서버 items 테이블에 아직 없는 아이템 — BE 에 같은 이름으로 등록돼야 살 수 있다.
-      Alert.alert(item.name, '아직 판매 준비 중인 아이템이에요.');
+      notice(item.name, '아직 판매 준비 중인 아이템이에요.', item.thumbnail);
       return;
     }
     const lock = lockOf(t, index);
     if (lock === 'themeFirst') {
-      Alert.alert(item.name, `${t.name} 테마를 먼저 구매해야 해요.`);
+      notice(item.name, `${t.name} 테마를 먼저 구매해야 해요.`, item.thumbnail);
       return;
     }
     if (lock === 'inOrder') {
       const next = t.items[themeProgress(t, shop!).ownedCount];
-      Alert.alert(item.name, `${next.name}부터 차례대로 구매해야 해요.`);
+      notice(
+        item.name,
+        `${next.name}부터 차례대로 구매해야 해요.`,
+        item.thumbnail,
+      );
       return;
     }
-    purchase(item, server);
+    purchase({ name: item.name, image: item.thumbnail }, server);
   };
 
   const handleMomentumEnd = useCallback(
@@ -279,6 +306,20 @@ export function ShopPanel({ tailRight = 27, style }: Props) {
           )}
         </View>
       </View>
+
+      <ConfirmModal
+        visible={dialog !== null}
+        title={dialog?.title ?? ''}
+        message={dialog?.message}
+        image={dialog?.image}
+        confirmText={dialog?.onConfirm ? dialog.confirmText ?? '확인' : '확인'}
+        cancelText={dialog?.onConfirm ? '취소' : null}
+        onCancel={() => setDialog(null)}
+        onConfirm={async () => {
+          if (dialog?.onConfirm) await dialog.onConfirm();
+          else setDialog(null);
+        }}
+      />
     </Animated.View>
   );
 }

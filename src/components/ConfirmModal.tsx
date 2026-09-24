@@ -1,5 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  Image,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type ImageSourcePropType,
+} from 'react-native';
 import { petoxColors, petoxTextBase } from '@/theme/petox';
 
 type Props = {
@@ -7,7 +15,10 @@ type Props = {
   title: string;
   message?: string;
   confirmText: string;
-  cancelText?: string;
+  /** null 이면 취소 버튼 없이 확인 버튼 하나 (알림용) */
+  cancelText?: string | null;
+  /** 제목 위에 보여줄 그림 (상점 아이템 썸네일 등) */
+  image?: ImageSourcePropType;
   /** 확인 버튼 색 (기본: 브랜드 초록) */
   confirmColor?: string;
   onCancel: () => void;
@@ -24,6 +35,7 @@ export function ConfirmModal({
   message,
   confirmText,
   cancelText = '취소',
+  image,
   confirmColor = petoxColors.green,
   onCancel,
   onConfirm,
@@ -54,19 +66,24 @@ export function ConfirmModal({
       <View style={styles.backdrop}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onCancel} />
         <View style={styles.card}>
+          {image ? (
+            <Image source={image} style={styles.image} resizeMode="contain" />
+          ) : null}
           <Text style={styles.title}>{title}</Text>
           {message ? <Text style={styles.message}>{message}</Text> : null}
           <View style={styles.buttons}>
-            <Pressable
-              onPress={onCancel}
-              style={({ pressed }) => [
-                styles.button,
-                styles.cancel,
-                pressed && styles.pressed,
-              ]}
-            >
-              <Text style={styles.cancelText}>{cancelText}</Text>
-            </Pressable>
+            {cancelText !== null && (
+              <Pressable
+                onPress={onCancel}
+                style={({ pressed }) => [
+                  styles.button,
+                  styles.cancel,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={styles.cancelText}>{cancelText}</Text>
+              </Pressable>
+            )}
             <Pressable
               onPress={confirm}
               disabled={busy}
@@ -100,6 +117,7 @@ const styles = StyleSheet.create({
     backgroundColor: petoxColors.white,
     padding: 22,
   },
+  image: { width: 96, height: 96, alignSelf: 'center', marginBottom: 14 },
   title: { ...petoxTextBase, fontSize: 18, color: petoxColors.text },
   message: {
     ...petoxTextBase,

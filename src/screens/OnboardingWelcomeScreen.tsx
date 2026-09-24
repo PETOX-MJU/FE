@@ -1,17 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BoneButton } from '@/components/BoneButton';
-import { WalkingDog } from '@/components/WalkingDog';
+import { PetHero } from '@/components/PetHero';
+import { WelcomeDog } from '@/components/WelcomeDog';
 import { fetchNickname } from '@/api/profile';
 import { onboardingStrings as S } from '@/constants/onboardingStrings';
 import { petoxColors, petoxLayout, petoxTextBase } from '@/theme/petox';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OnboardingWelcome'>;
-
-const DOG_SIZE = 150;
 
 /**
  * 회원가입 직후, 온보딩 1단계로 들어가기 전에 보여주는 안내 화면.
@@ -34,7 +33,20 @@ export function OnboardingWelcomeScreen({ navigation, route }: Props) {
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.body}>
         <View style={styles.hero}>
-          <WalkingDog size={DOG_SIZE} />
+          {/* 개발 모드: 강아지를 길게 누르면 가입 인증 대기 화면 미리보기 */}
+          <PetHero>
+            <Pressable
+              disabled={!__DEV__}
+              onLongPress={() =>
+                navigation.navigate('EmailConfirmWait', {
+                  email: 'preview@petox.dev',
+                  nickname: nickname ?? '',
+                })
+              }
+            >
+              <WelcomeDog />
+            </Pressable>
+          </PetHero>
           <Text style={styles.title}>
             {nickname ? S.welcomeTitle(nickname) : S.welcomeTitleNoName}
           </Text>
@@ -59,8 +71,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: petoxLayout.screenPadding,
     paddingBottom: 48,
   },
-  // 안내 문구만 있는 화면이라 가운데보다 살짝 위에 둡니다.
-  hero: { alignItems: 'center', marginTop: 120 },
+  // 강아지 자리는 PetHero 가 잡는다 (가입 인증 대기 화면과 같은 위치)
+  hero: { alignItems: 'center' },
   title: {
     ...petoxTextBase,
     marginTop: 20,

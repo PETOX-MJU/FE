@@ -49,6 +49,13 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
+        <!-- 가입 인증 메일 링크(petox://auth-callback)를 누르면 앱으로 돌아온다 -->
+        <intent-filter>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="petox" android:host="auth-callback" />
+        </intent-filter>
       </activity>
 
       <service

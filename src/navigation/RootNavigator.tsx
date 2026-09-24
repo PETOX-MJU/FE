@@ -1,4 +1,5 @@
 import React from 'react';
+import { AppDialogHost } from '@/components/AppDialog';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { HomeScreen } from '@/screens/HomeScreen';
@@ -11,6 +12,7 @@ import { SplashScreen } from '@/screens/SplashScreen';
 import { LoginScreen } from '@/screens/LoginScreen';
 import { EmailLoginScreen } from '@/screens/EmailLoginScreen';
 import { SignupScreen } from '@/screens/SignupScreen';
+import { EmailConfirmWaitScreen } from '@/screens/EmailConfirmWaitScreen';
 import { OnboardingWelcomeScreen } from '@/screens/OnboardingWelcomeScreen';
 import { OnboardingGoalScreen } from '@/screens/OnboardingGoalScreen';
 import { OnboardingBlockTimeScreen } from '@/screens/OnboardingBlockTimeScreen';
@@ -27,6 +29,8 @@ export type RootStackParamList = {
   Login: undefined;
   EmailLogin: undefined;
   Signup: undefined;
+  /** 가입 후 인증 메일을 기다리는 화면 */
+  EmailConfirmWait: { email: string; nickname: string };
   OnboardingWelcome: { nickname?: string } | undefined;
   OnboardingGoal: undefined;
   OnboardingBlockTime: { goalMinutes: number };
@@ -60,89 +64,98 @@ const authOptions = { headerShown: false } as const;
 
 export function RootNavigator() {
   return (
-    <NavigationContainer>
-      <Stack.Navigator
-        initialRouteName="Splash"
-        screenOptions={{ headerShown: false }}
-      >
-        <Stack.Screen
-          name="Splash"
-          component={SplashScreen}
-          options={authOptions}
-        />
-        <Stack.Screen
-          name="Login"
-          component={LoginScreen}
-          options={authOptions}
-        />
-        <Stack.Screen
-          name="EmailLogin"
-          component={EmailLoginScreen}
-          options={authOptions}
-        />
-        <Stack.Screen
-          name="Signup"
-          component={SignupScreen}
-          options={authOptions}
-        />
-        <Stack.Screen
-          name="OnboardingWelcome"
-          component={OnboardingWelcomeScreen}
-          options={authOptions}
-        />
-        <Stack.Screen
-          name="OnboardingGoal"
-          component={OnboardingGoalScreen}
-          options={authOptions}
-        />
-        <Stack.Screen
-          name="OnboardingBlockTime"
-          component={OnboardingBlockTimeScreen}
-          options={authOptions}
-        />
-        <Stack.Screen
-          name="OnboardingCustomTime"
-          component={OnboardingCustomTimeScreen}
-          options={authOptions}
-        />
-        <Stack.Screen
-          name="OnboardingApps"
-          component={OnboardingAppsScreen}
-          options={authOptions}
-        />
-        <Stack.Screen
-          name="OnboardingCharacter"
-          component={OnboardingCharacterScreen}
-          options={authOptions}
-        />
-        <Stack.Screen
-          name="OnboardingPetPhoto"
-          component={OnboardingPetPhotoScreen}
-          options={authOptions}
-        />
-        <Stack.Screen
-          name="OnboardingConvert"
-          component={OnboardingConvertScreen}
-          options={authOptions}
-        />
-        <Stack.Screen
-          name="OnboardingConfirm"
-          component={OnboardingConfirmScreen}
-          options={authOptions}
-        />
-        <Stack.Screen name="Home" component={HomeScreen} />
-        <Stack.Screen
-          name="ScreentimeDashboard"
-          component={ScreentimeDashboardScreen}
-        />
-        <Stack.Screen name="MyPage" component={MyPageScreen} />
-        <Stack.Screen name="GoalSettings" component={GoalSettingsScreen} />
-        <Stack.Screen name="DetectedApps" component={DetectedAppsScreen} />
-        <Stack.Screen
-          name="BlockTimeSettings"
-          component={BlockTimeSettingsScreen}
-        />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <>
+      <NavigationContainer>
+        <Stack.Navigator
+          initialRouteName="Splash"
+          screenOptions={{ headerShown: false }}
+        >
+          <Stack.Screen
+            name="Splash"
+            component={SplashScreen}
+            options={authOptions}
+          />
+          <Stack.Screen
+            name="Login"
+            component={LoginScreen}
+            options={authOptions}
+          />
+          <Stack.Screen
+            name="EmailLogin"
+            component={EmailLoginScreen}
+            options={authOptions}
+          />
+          <Stack.Screen
+            name="Signup"
+            component={SignupScreen}
+            options={authOptions}
+          />
+          <Stack.Screen
+            name="EmailConfirmWait"
+            component={EmailConfirmWaitScreen}
+            options={authOptions}
+          />
+          <Stack.Screen
+            name="OnboardingWelcome"
+            component={OnboardingWelcomeScreen}
+            options={authOptions}
+          />
+          <Stack.Screen
+            name="OnboardingGoal"
+            component={OnboardingGoalScreen}
+            options={authOptions}
+          />
+          <Stack.Screen
+            name="OnboardingBlockTime"
+            component={OnboardingBlockTimeScreen}
+            options={authOptions}
+          />
+          <Stack.Screen
+            name="OnboardingCustomTime"
+            component={OnboardingCustomTimeScreen}
+            options={authOptions}
+          />
+          <Stack.Screen
+            name="OnboardingApps"
+            component={OnboardingAppsScreen}
+            options={authOptions}
+          />
+          <Stack.Screen
+            name="OnboardingCharacter"
+            component={OnboardingCharacterScreen}
+            options={authOptions}
+          />
+          <Stack.Screen
+            name="OnboardingPetPhoto"
+            component={OnboardingPetPhotoScreen}
+            options={authOptions}
+          />
+          <Stack.Screen
+            name="OnboardingConvert"
+            component={OnboardingConvertScreen}
+            options={authOptions}
+          />
+          <Stack.Screen
+            name="OnboardingConfirm"
+            component={OnboardingConfirmScreen}
+            options={authOptions}
+          />
+          <Stack.Screen name="Home" component={HomeScreen} />
+          <Stack.Screen
+            name="ScreentimeDashboard"
+            component={ScreentimeDashboardScreen}
+          />
+          <Stack.Screen name="MyPage" component={MyPageScreen} />
+          <Stack.Screen name="GoalSettings" component={GoalSettingsScreen} />
+          <Stack.Screen name="DetectedApps" component={DetectedAppsScreen} />
+          <Stack.Screen
+            name="BlockTimeSettings"
+            component={BlockTimeSettingsScreen}
+          />
+        </Stack.Navigator>
+      </NavigationContainer>
+      {/* 앱 스타일 알림창 (showDialog) — 화면 전환과 상관없이 맨 위에 뜬다 */}
+      <AppDialogHost />
+    </>
   );
 }

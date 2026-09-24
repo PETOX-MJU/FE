@@ -144,3 +144,8 @@ export const overlayPermissionText = {
       '지금 숏폼 앱을 보고 있는지 알려면 이 권한이 꼭 필요해요. 설정에서 펫톡스를 허용하고 돌아와 주세요.',
   },
 } as const;
+
+/** 펫 오버레이 서비스 끄기 (로그아웃·탈퇴 때) */
+export function stopOverlay() {
+  native?.stop();
+}

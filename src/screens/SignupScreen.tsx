@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -54,8 +53,11 @@ export function SignupScreen({ navigation }: Props) {
       const result = await signUpWithEmail(trimmedNickname, email, password);
       if (result.status === 'needsEmailConfirm') {
         // 이메일 인증이 켜진 프로젝트: 세션이 없으므로 인증 후 로그인하도록 로그인 화면으로.
-        Alert.alert('', petoxStrings.signupNeedsConfirm);
-        navigation.replace('EmailLogin');
+        // 이메일 인증이 켜진 프로젝트: 인증 대기 화면에서 인증되면 바로 로그인 → 온보딩.
+        navigation.replace('EmailConfirmWait', {
+          email: email.trim(),
+          nickname: trimmedNickname,
+        });
         return;
       }
       // 가입 직후에는 홈이 아니라 온보딩 안내 화면으로.

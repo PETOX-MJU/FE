@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Alert,
   Image,
   ImageBackground,
   Linking,
@@ -13,11 +12,12 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import { showDialog } from '@/components/AppDialog';
 import LinearGradient from 'react-native-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { HOME_BG_ASPECT, homeImages } from '@/assets/images';
-import { hasSession, signOut } from '@/api/auth';
+import { deleteAccount, hasSession, signOut } from '@/api/auth';
 import {
   fetchNickname,
   fetchNotificationSettings,
@@ -68,8 +68,6 @@ type MenuRow =
     };
 type MenuSection = { title: string; rows: MenuRow[] };
 
-const soon = (label: string) => () => Alert.alert(label, '준비 중이에요.');
-
 // 펫 스프라이트 PNG(544×544)는 도트 아래에 투명 여백 160px 이 있고, 허스키 도트 높이는 296px.
 // 피그마처럼 도트가 137dp 가 되도록 전체를 키우고, 발끝(여백 위)을 기준선에 맞춘다.
 const SPRITE_PX = 544;
@@ -101,6 +99,28 @@ export function MyPageScreen({ navigation }: Props) {
 
   const [logoutOpen, setLogoutOpen] = useState(false);
   const onLogout = () => setLogoutOpen(true);
+  // 회원탈퇴 — 되돌릴 수 없어서 두 번 확인한다.
+  const [deleteStep, setDeleteStep] = useState<0 | 1 | 2>(0);
+  const onDeleteAccount = () =>
+    signedIn ? setDeleteStep(1) : showDialog({ title: '로그인이 필요해요' });
+  const doDeleteAccount = async () => {
+    try {
+      await deleteAccount();
+      setDeleteStep(0);
+      navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+      showDialog({
+        title: '탈퇴했어요',
+        message: '그동안 펫톡스와 함께해 줘서 고마워요.',
+      });
+    } catch {
+      setDeleteStep(0);
+      showDialog({
+        title: '탈퇴하지 못했어요',
+        message: '잠시 후 다시 시도해 주세요.',
+      });
+    }
+  };
+
   const doLogout = async () => {
     try {
       await signOut();
@@ -154,14 +174,20 @@ export function MyPageScreen({ navigation }: Props) {
 
   const toggleNotif = (key: keyof NotificationSettings) => (v: boolean) => {
     if (!signedIn) {
-      Alert.alert('로그인이 필요해요', '로그인하면 알림을 설정할 수 있어요.');
+      showDialog({
+        title: '로그인이 필요해요',
+        message: '로그인하면 알림을 설정할 수 있어요.',
+      });
       return;
     }
     const next = { ...notif, [key]: v };
     setNotif(next); // 먼저 반영하고, 실패하면 되돌린다
     saveNotificationSettings(next).catch(() => {
       setNotif(notif);
-      Alert.alert('저장 실패', '잠시 후 다시 시도해 주세요.');
+      showDialog({
+        title: '저장 실패',
+        message: '잠시 후 다시 시도해 주세요.',
+      });
     });
   };
 
@@ -170,7 +196,10 @@ export function MyPageScreen({ navigation }: Props) {
     (route: 'DetectedApps' | 'GoalSettings' | 'BlockTimeSettings') => () =>
       signedIn
         ? navigation.navigate(route)
-        : Alert.alert('로그인이 필요해요', '로그인하면 설정을 바꿀 수 있어요.');
+        : showDialog({
+            title: '로그인이 필요해요',
+            message: '로그인하면 설정을 바꿀 수 있어요.',
+          });
 
   const sections: MenuSection[] = [
     {
@@ -184,10 +213,10 @@ export function MyPageScreen({ navigation }: Props) {
               onPress: () =>
                 petName
                   ? setEditing('petName')
-                  : Alert.alert(
-                      '이름 변경',
-                      '온보딩에서 펫을 먼저 등록해 주세요.',
-                    ),
+                  : showDialog({
+                      title: '이름 변경',
+                      message: '온보딩에서 펫을 먼저 등록해 주세요.',
+                    }),
             },
           ],
         },
@@ -204,10 +233,10 @@ export function MyPageScreen({ navigation }: Props) {
               onPress: () =>
                 signedIn
                   ? setEditing('nickname')
-                  : Alert.alert(
-                      '로그인이 필요해요',
-                      '로그인하면 닉네임을 바꿀 수 있어요.',
-                    ),
+                  : showDialog({
+                      title: '로그인이 필요해요',
+                      message: '로그인하면 닉네임을 바꿀 수 있어요.',
+                    }),
             },
           ],
         },
@@ -274,7 +303,7 @@ export function MyPageScreen({ navigation }: Props) {
           kind: 'links',
           items: [
             { label: '로그아웃', color: '#577CE4', onPress: onLogout },
-            { label: '회원탈퇴', color: '#E45759', onPress: soon('회원탈퇴') },
+            { label: '회원탈퇴', color: '#E45759', onPress: onDeleteAccount },
           ],
         },
       ],
@@ -406,6 +435,24 @@ export function MyPageScreen({ navigation }: Props) {
         confirmColor="#577CE4"
         onCancel={() => setLogoutOpen(false)}
         onConfirm={doLogout}
+      />
+      <ConfirmModal
+        visible={deleteStep === 1}
+        title="회원탈퇴"
+        message="탈퇴하면 펫, 코인, 산 아이템, 기록이 모두 사라지고 되돌릴 수 없어요. 계속할까요?"
+        confirmText="계속"
+        confirmColor="#E45759"
+        onCancel={() => setDeleteStep(0)}
+        onConfirm={() => setDeleteStep(2)}
+      />
+      <ConfirmModal
+        visible={deleteStep === 2}
+        title="정말 탈퇴할까요?"
+        message="마지막 확인이에요. 탈퇴하기를 누르면 바로 지워져요."
+        confirmText="탈퇴하기"
+        confirmColor="#E45759"
+        onCancel={() => setDeleteStep(0)}
+        onConfirm={doDeleteAccount}
       />
     </View>
   );

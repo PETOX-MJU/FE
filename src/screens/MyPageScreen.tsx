@@ -35,6 +35,7 @@ import {
 } from '@/components/ScreenHeader';
 import { PetSprite } from '@/components/PetSprite';
 import { screentime } from '@/features/screentime/onDevice';
+import { useHomeScene } from '@/hooks/useHomeScene';
 import type { PetId } from '@/constants/onboardingStrings';
 import { loadPetProfile, savePetProfile } from '@/storage/petProfile';
 import { petoxColors, petoxLayout, petoxTextBase } from '@/theme/petox';
@@ -280,7 +281,9 @@ export function MyPageScreen({ navigation }: Props) {
     },
   ];
 
-  // 홈과 같은 초원 배경을 화면 높이에 맞춰 덮는다(cover, 위쪽 기준).
+  // 홈과 같은 배경(적용 중인 테마의 산 단계 그림, 없으면 기본 초원)을
+  // 화면 높이에 맞춰 덮는다(cover, 위쪽 기준).
+  const scene = useHomeScene();
   const pageH = Math.max(screenH, insets.top + DESIGN_H);
   const bgW = Math.max(screenW, pageH * HOME_BG_ASPECT);
   const bgH = bgW / HOME_BG_ASPECT;
@@ -295,7 +298,8 @@ export function MyPageScreen({ navigation }: Props) {
         contentContainerStyle={{ minHeight: pageH }}
       >
         <Image
-          source={homeImages.background}
+          source={scene ?? homeImages.background}
+          resizeMode="cover"
           style={[styles.background, { width: bgW, height: bgH }]}
         />
         {/* 목록 뒤를 흰색으로 덮는 그라데이션 (Rectangle 1540, y 428 ~ 1025) */}

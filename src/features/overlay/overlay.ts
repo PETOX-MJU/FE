@@ -49,14 +49,11 @@ export const OVERLAY_TARGETS = [
   ...DEV_TARGETS,
 ];
 
-/** 감지 앱 관리에서 켠 앱 (+ 틱톡 해외판 패키지, 개발용 크롬) */
+/** 감지 앱으로 고른 앱 (+ 개발용 크롬) */
 async function currentTargets(): Promise<string[]> {
   const pkgs = await enabledAppPackages();
   if (!pkgs) return OVERLAY_TARGETS;
-  const withAlias = pkgs.includes('com.zhiliaoapp.musically')
-    ? [...pkgs, 'com.ss.android.ugc.trill']
-    : pkgs;
-  return [...withAlias, ...DEV_TARGETS];
+  return [...pkgs, ...DEV_TARGETS];
 }
 
 export const overlayAvailable =

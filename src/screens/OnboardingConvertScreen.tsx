@@ -41,7 +41,7 @@ export function OnboardingConvertScreen({ navigation, route }: Props) {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.body}>
-        <OnboardingHeader step={3} total={4} onBack={() => navigation.goBack()} />
+        <OnboardingHeader step={4} total={5} onBack={() => navigation.goBack()} />
 
         <Text style={styles.title}>{S.convertTitle}</Text>
 

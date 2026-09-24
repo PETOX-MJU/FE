@@ -48,8 +48,8 @@ export function OnboardingCharacterScreen({ navigation, route }: Props) {
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.body}>
         <OnboardingHeader
-          step={3}
-          total={4}
+          step={4}
+          total={5}
           onBack={() => navigation.goBack()}
         />
 

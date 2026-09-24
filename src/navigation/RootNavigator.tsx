@@ -15,6 +15,7 @@ import { OnboardingWelcomeScreen } from '@/screens/OnboardingWelcomeScreen';
 import { OnboardingGoalScreen } from '@/screens/OnboardingGoalScreen';
 import { OnboardingBlockTimeScreen } from '@/screens/OnboardingBlockTimeScreen';
 import { OnboardingCustomTimeScreen } from '@/screens/OnboardingCustomTimeScreen';
+import { OnboardingAppsScreen } from '@/screens/OnboardingAppsScreen';
 import { OnboardingCharacterScreen } from '@/screens/OnboardingCharacterScreen';
 import { OnboardingPetPhotoScreen } from '@/screens/OnboardingPetPhotoScreen';
 import { OnboardingConvertScreen } from '@/screens/OnboardingConvertScreen';
@@ -31,6 +32,7 @@ export type RootStackParamList = {
   OnboardingBlockTime: { goalMinutes: number };
   /** 온보딩(goalMinutes) 또는 마이페이지 시간대 설정(fromSettings)에서 연다 */
   OnboardingCustomTime: { goalMinutes?: number; fromSettings?: boolean };
+  OnboardingApps: { goalMinutes: number; blockSlots: string[] };
   OnboardingCharacter: { goalMinutes: number; blockSlots: string[] };
   OnboardingPetPhoto: { goalMinutes: number; blockSlots: string[] };
   OnboardingConvert: { goalMinutes: number; blockSlots: string[] };
@@ -101,6 +103,11 @@ export function RootNavigator() {
         <Stack.Screen
           name="OnboardingCustomTime"
           component={OnboardingCustomTimeScreen}
+          options={authOptions}
+        />
+        <Stack.Screen
+          name="OnboardingApps"
+          component={OnboardingAppsScreen}
           options={authOptions}
         />
         <Stack.Screen

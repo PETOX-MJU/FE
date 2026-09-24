@@ -171,7 +171,7 @@ export function OnboardingCustomTimeScreen({ navigation, route }: Props) {
         ) : (
           <OnboardingHeader
             step={2}
-            total={4}
+            total={5}
             onBack={() => navigation.goBack()}
           />
         )}
@@ -228,7 +228,7 @@ export function OnboardingCustomTimeScreen({ navigation, route }: Props) {
             if (fromSettings) {
               navigation.popTo('BlockTimeSettings', { addSlot: range });
             } else {
-              navigation.navigate('OnboardingCharacter', {
+              navigation.navigate('OnboardingApps', {
                 goalMinutes,
                 blockSlots: [range],
               });

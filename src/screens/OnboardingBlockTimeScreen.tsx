@@ -22,7 +22,7 @@ export function OnboardingBlockTimeScreen({ navigation, route }: Props) {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.body}>
-        <OnboardingHeader step={2} total={4} onBack={() => navigation.goBack()} />
+        <OnboardingHeader step={2} total={5} onBack={() => navigation.goBack()} />
 
         <Text style={styles.title}>{S.blockTitle}</Text>
         <Text style={styles.subtitle}>{S.blockSubtitle}</Text>
@@ -60,7 +60,7 @@ export function OnboardingBlockTimeScreen({ navigation, route }: Props) {
           text={S.next}
           disabled={selected.length === 0}
           onPress={() =>
-            navigation.navigate('OnboardingCharacter', {
+            navigation.navigate('OnboardingApps', {
               goalMinutes,
               blockSlots: selected,
             })

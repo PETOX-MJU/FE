@@ -27,7 +27,7 @@ export function OnboardingGoalScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.body}>
-        <OnboardingHeader step={1} total={4} onBack={() => navigation.goBack()} />
+        <OnboardingHeader step={1} total={5} onBack={() => navigation.goBack()} />
 
         <Text style={styles.title}>{S.goalTitle}</Text>
         <Text style={styles.subtitle}>{S.goalSubtitle}</Text>

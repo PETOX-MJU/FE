@@ -1,54 +1,47 @@
 import React, { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  StyleSheet,
-  Switch,
-  Text,
-  View,
-} from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { AppPicker } from '@/components/AppPicker';
+import { BoneButton } from '@/components/BoneButton';
 import { ScreenHeader } from '@/components/ScreenHeader';
-import {
-  fetchDetectedApps,
-  setDetectedAppEnabled,
-  type DetectedApp,
-} from '@/api/settings';
+import { loadSelectedApps, saveSelectedApps } from '@/api/settings';
 import { syncOverlay } from '@/features/overlay/overlay';
 import { petoxColors, petoxLayout, petoxTextBase } from '@/theme/petox';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'DetectedApps'>;
 
-/**
- * 마이페이지 > 감지 앱 관리. 켜 둔 앱을 볼 때만 펫이 나타나고, 미션도 이 앱들 기준으로 잡힌다.
- * 누르는 즉시 저장한다. 하나도 안 켜면 감지할 게 없어서 마지막 하나는 못 끈다.
- */
+/** 마이페이지 > 감지 앱 관리. 온보딩과 같은 앱 고르기 화면에 저장 버튼. */
 export function DetectedAppsScreen({ navigation }: Props) {
-  const [apps, setApps] = useState<DetectedApp[] | null>(null);
-  const [failed, setFailed] = useState(false);
+  const [selected, setSelected] = useState<string[] | null>(null);
+  const [saved, setSaved] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetchDetectedApps()
-      .then(setApps)
-      .catch(() => setFailed(true));
+    loadSelectedApps()
+      .then(list => {
+        setSelected(list);
+        setSaved(list);
+      })
+      .catch(() => setSelected([]));
   }, []);
 
-  const toggle = (app: DetectedApp) => async (on: boolean) => {
-    if (!apps) return;
-    if (!on && apps.filter(a => a.enabled).length <= 1) {
-      Alert.alert('감지 앱', '최소 한 개의 앱은 켜 두어야 해요.');
-      return;
-    }
-    const prev = apps;
-    setApps(apps.map(a => (a.id === app.id ? { ...a, enabled: on } : a)));
+  const changed =
+    selected !== null &&
+    (selected.length !== saved.length ||
+      selected.some(p => !saved.includes(p)));
+
+  const save = async () => {
+    if (!selected || saving) return;
+    setSaving(true);
     try {
-      await setDetectedAppEnabled(app.id, on);
+      await saveSelectedApps(selected);
       syncOverlay().catch(() => {}); // 펫 오버레이가 바로 새 목록을 보도록
+      navigation.goBack();
     } catch {
-      setApps(prev);
       Alert.alert('저장 실패', '잠시 후 다시 시도해 주세요.');
+      setSaving(false);
     }
   };
 
@@ -57,29 +50,24 @@ export function DetectedAppsScreen({ navigation }: Props) {
       <ScreenHeader title="감지 앱 관리" onBack={() => navigation.goBack()} />
       <View style={styles.body}>
         <Text style={styles.subtitle}>
-          켜 둔 앱에서 숏폼을 오래 보면 펫이 나타나요.
+          고른 앱에서 숏폼을 오래 보면 펫이 나타나요.
         </Text>
-
-        {apps === null && !failed && (
-          <ActivityIndicator style={styles.loading} color={petoxColors.green} />
+        {selected !== null && (
+          <AppPicker
+            selected={selected}
+            onChange={setSelected}
+            style={styles.picker}
+          />
         )}
-        {failed && (
-          <Text style={styles.error}>
-            목록을 불러오지 못했어요. 잠시 후 다시 열어 주세요.
-          </Text>
+        <BoneButton
+          text="저장하기"
+          disabled={!changed || (selected?.length ?? 0) === 0 || saving}
+          onPress={save}
+          style={styles.button}
+        />
+        {selected?.length === 0 && (
+          <Text style={styles.warn}>앱을 하나 이상 골라 주세요</Text>
         )}
-
-        {apps?.map(app => (
-          <View key={app.id} style={styles.row}>
-            <Text style={styles.name}>{app.name}</Text>
-            <Switch
-              value={app.enabled}
-              onValueChange={toggle(app)}
-              trackColor={{ false: '#D9D9D9', true: petoxColors.green }}
-              thumbColor={petoxColors.white}
-            />
-          </View>
-        ))}
       </View>
     </SafeAreaView>
   );
@@ -87,29 +75,24 @@ export function DetectedAppsScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: petoxColors.white },
-  body: { flex: 1, paddingHorizontal: petoxLayout.screenPadding },
+  body: {
+    flex: 1,
+    paddingHorizontal: petoxLayout.screenPadding,
+    paddingBottom: 32,
+  },
   subtitle: {
     ...petoxTextBase,
-    marginTop: 24,
-    marginBottom: 12,
+    marginTop: 20,
     fontSize: 13,
     color: petoxColors.hint,
   },
-  loading: { marginTop: 40 },
-  error: {
+  picker: { marginTop: 16 },
+  button: { marginTop: 20 },
+  warn: {
     ...petoxTextBase,
-    marginTop: 40,
+    marginTop: 8,
     textAlign: 'center',
-    fontSize: 13,
+    fontSize: 12,
     color: '#E45759',
   },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E6E6E6',
-  },
-  name: { ...petoxTextBase, fontSize: 16, color: petoxColors.text },
 });

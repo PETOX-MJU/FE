@@ -76,8 +76,8 @@ export function OnboardingConfirmScreen({ navigation, route }: Props) {
           keyboardShouldPersistTaps="handled"
         >
           <OnboardingHeader
-            step={4}
-            total={4}
+            step={5}
+            total={5}
             onBack={() => navigation.goBack()}
           />
 

@@ -10,6 +10,10 @@ export type ServerItem = {
   name: string;
   type: 'clothing' | 'pet_slot' | 'furniture' | 'theme';
   price: number;
+  /** 속한 테마의 서버 id (테마 자신·테마 없는 아이템은 null) */
+  themeId: string | null;
+  /** 테마 안 단계 1~4 (themeId 가 null 이면 null) */
+  sortOrder: number | null;
 };
 
 export type ShopState = {
@@ -17,12 +21,16 @@ export type ShopState = {
   itemsByName: Map<string, ServerItem>;
   /** 내가 가진 아이템 id(서버 uuid) */
   ownedIds: Set<string>;
+  /** 적용(장착) 중인 아이템 id — 테마는 최대 하나 */
+  equippedIds: Set<string>;
 };
 
 export async function fetchShopState(): Promise<ShopState> {
   const [itemsRes, ownedRes] = await Promise.all([
-    supabase.from('items').select('id, name, type, price_coins'),
-    supabase.from('user_items').select('item_id'),
+    supabase
+      .from('items')
+      .select('id, name, type, price_coins, theme_id, sort_order'),
+    supabase.from('user_items').select('item_id, is_equipped'),
   ]);
   if (itemsRes.error) throw itemsRes.error;
   if (ownedRes.error) throw ownedRes.error;
@@ -34,10 +42,62 @@ export async function fetchShopState(): Promise<ShopState> {
       name: row.name as string,
       type: row.type as ServerItem['type'],
       price: row.price_coins as number,
+      themeId: (row.theme_id as string | null) ?? null,
+      sortOrder: (row.sort_order as number | null) ?? null,
     });
   }
-  const ownedIds = new Set((ownedRes.data ?? []).map(r => r.item_id as string));
-  return { itemsByName, ownedIds };
+  const owned = ownedRes.data ?? [];
+  const ownedIds = new Set(owned.map(r => r.item_id as string));
+  const equippedIds = new Set(
+    owned.filter(r => r.is_equipped).map(r => r.item_id as string),
+  );
+  return { itemsByName, ownedIds, equippedIds };
+}
+
+// ---- 상점이 바뀌었을 때(구매·테마 적용) 홈 배경 등에 알리기 ----
+
+type Listener = () => void;
+const listeners = new Set<Listener>();
+
+export function onShopChanged(fn: Listener): () => void {
+  listeners.add(fn);
+  return () => {
+    listeners.delete(fn);
+  };
+}
+
+export function notifyShopChanged() {
+  listeners.forEach(fn => fn());
+}
+
+/**
+ * 테마 적용. 가진 테마 중 하나만 is_equipped = true 로 둔다.
+ * themeServerId 가 null 이면 전부 해제 → 기본 테마(초원).
+ */
+export async function equipTheme(
+  themeServerId: string | null,
+  allThemeServerIds: string[],
+): Promise<void> {
+  const { data: auth } = await supabase.auth.getSession();
+  const uid = auth.session?.user.id;
+  if (!uid) return;
+  if (allThemeServerIds.length > 0) {
+    const off = await supabase
+      .from('user_items')
+      .update({ is_equipped: false })
+      .eq('user_id', uid)
+      .in('item_id', allThemeServerIds);
+    if (off.error) throw off.error;
+  }
+  if (themeServerId) {
+    const on = await supabase
+      .from('user_items')
+      .update({ is_equipped: true })
+      .eq('user_id', uid)
+      .eq('item_id', themeServerId);
+    if (on.error) throw on.error;
+  }
+  notifyShopChanged();
 }
 
 /** 멱등키. 같은 구매가 재시도돼도 서버가 한 번만 처리한다. */
@@ -62,6 +122,21 @@ function uuidV4(): string {
 
 export class NotEnoughCoinsError extends Error {}
 
+/** 서버 구매 규칙(ADR-34)에 걸린 경우 */
+export type ShopRule = 'alreadyOwned' | 'themeFirst' | 'inOrder';
+export class ShopRuleError extends Error {
+  constructor(public rule: ShopRule) {
+    super(rule);
+  }
+}
+
+// BE buy_item 이 던지는 문구 (frontend-api-guide.md 에러 표). 문구가 바뀌면 여기도 바꿔야 한다.
+const RULE_MESSAGES: [string, ShopRule][] = [
+  ['이미 보유한 아이템', 'alreadyOwned'],
+  ['테마를 먼저 구매', 'themeFirst'],
+  ['앞 단계 아이템을 먼저 구매', 'inOrder'],
+];
+
 export async function buyItem(itemId: string): Promise<void> {
   const { error } = await supabase.rpc('buy_item', {
     p_item_id: itemId,
@@ -70,6 +145,8 @@ export async function buyItem(itemId: string): Promise<void> {
   if (error) {
     // BE 가 잔액 부족일 때 던지는 메시지 (buy_item: raise exception '코인이 부족합니다')
     if (error.message.includes('코인이 부족')) throw new NotEnoughCoinsError();
+    const rule = RULE_MESSAGES.find(([msg]) => error.message.includes(msg));
+    if (rule) throw new ShopRuleError(rule[1]);
     throw error;
   }
 }

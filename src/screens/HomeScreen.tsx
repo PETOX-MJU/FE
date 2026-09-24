@@ -36,6 +36,7 @@ import { PetCharacter } from '@/components/PetCharacter';
 import { ShopPanel } from '@/components/ShopPanel';
 import { useCoinBalance } from '@/hooks/useCoinBalance';
 import { useDailyCheckIn } from '@/hooks/useDailyCheckIn';
+import { useHomeScene } from '@/hooks/useHomeScene';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 
@@ -110,9 +111,13 @@ export function HomeScreen({ navigation }: Props) {
   const bgH = bgW / HOME_BG_ASPECT;
   const k = bgH / DESIGN_H; // 피그마 배경 좌표 → 화면 좌표 배율
 
+  // 적용 중인 테마가 있으면 산 단계의 그림, 없으면 기본 초원
+  const scene = useHomeScene();
+  const bgSource = scene ?? homeImages.background;
+
   const backdrop = useMemo<Backdrop>(
-    () => ({ source: homeImages.background, width: bgW, height: bgH }),
-    [bgW, bgH],
+    () => ({ source: bgSource, width: bgW, height: bgH }),
+    [bgSource, bgW, bgH],
   );
 
   // 오늘 처음 쓰다듬으면 출석 + 코인 지급(서버 check_in, 코인 +5).
@@ -125,7 +130,8 @@ export function HomeScreen({ navigation }: Props) {
       {/* RN 0.87 Android는 edge-to-edge라 배경이 상태바 뒤까지 깔린다 */}
       <StatusBar barStyle="dark-content" />
       <Image
-        source={homeImages.background}
+        source={bgSource}
+        resizeMode="cover"
         style={[styles.background, { width: bgW, height: bgH }]}
       />
 

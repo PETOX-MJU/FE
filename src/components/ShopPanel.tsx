@@ -17,10 +17,20 @@ import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { homeImages } from '@/assets/images';
 import {
   NotEnoughCoinsError,
+  ShopRuleError,
   buyItem,
+  equipTheme,
   fetchShopState,
+  notifyShopChanged,
+  type ServerItem,
+  type ShopRule,
   type ShopState,
 } from '@/api/shop';
+import {
+  itemLock,
+  serverThemeIds,
+  themeProgress,
+} from '@/features/shop/progress';
 import { supabase } from '@/api/supabase';
 import { shopThemes, type ShopItem, type ShopTheme } from '@/data/shop';
 import { notifyCoinsChanged, useCoinBalance } from '@/hooks/useCoinBalance';
@@ -29,6 +39,13 @@ import { fonts } from '@/theme/fonts';
 const THEME_COL_W = 132; // 테마 카드 한 장 너비
 const THEME_CARD_H = 186;
 const GAP = 12;
+
+// 서버가 구매 규칙으로 거절했을 때 (화면 잠금을 우회했거나 목록이 오래된 경우)
+const RULE_TEXT: Record<ShopRule, string> = {
+  alreadyOwned: '이미 가지고 있어요.',
+  themeFirst: '테마를 먼저 구매해야 해요.',
+  inOrder: '앞 단계 아이템부터 차례대로 구매해야 해요.',
+};
 
 type Props = {
   // 말풍선 꼬리가 가리킬 위치 — 패널 오른쪽 끝에서 꼬리 중심까지의 거리
@@ -73,30 +90,29 @@ export function ShopPanel({ tailRight = 27, style }: Props) {
     return server ? shop!.ownedIds.has(server.id) : !!entry.owned;
   };
 
-  const handleBuy = async (entry: {
-    name: string;
-    price: number;
-    owned?: boolean;
-  }) => {
-    if (buying) return;
+  const isEquipped = (t: ShopTheme) => {
+    const server = shop?.itemsByName.get(t.name);
+    return server ? shop!.equippedIds.has(server.id) : false;
+  };
+  const lockOf = (t: ShopTheme, index: number) =>
+    shop ? itemLock(t, index, shop) : null;
+
+  const requireLogin = async () => {
     const { data: auth } = await supabase.auth.getSession();
-    if (!auth.session) {
-      Alert.alert(
-        '로그인이 필요해요',
-        '로그인하면 코인으로 아이템을 살 수 있어요.',
-      );
-      return;
-    }
-    if (isOwned(entry)) {
-      Alert.alert(entry.name, '이미 가지고 있어요.');
-      return;
-    }
-    const server = shop?.itemsByName.get(entry.name);
-    if (!server) {
-      // 서버 items 테이블에 아직 없는 아이템 — BE 에 같은 이름으로 등록돼야 살 수 있다.
-      Alert.alert(entry.name, '아직 판매 준비 중인 아이템이에요.');
-      return;
-    }
+    if (auth.session) return true;
+    Alert.alert(
+      '로그인이 필요해요',
+      '로그인하면 코인으로 아이템을 살 수 있어요.',
+    );
+    return false;
+  };
+
+  /** 확인 → 서버 구매 → 잔액·상점·홈 배경 갱신. 성공하면 onBought 실행. */
+  const purchase = (
+    entry: { name: string },
+    server: ServerItem,
+    onBought?: () => Promise<void>,
+  ) => {
     const balance = coins ?? 0;
     if (balance < server.price) {
       Alert.alert(
@@ -116,6 +132,7 @@ export function ShopPanel({ tailRight = 27, style }: Props) {
             setBuying(true);
             try {
               await buyItem(server.id);
+              await onBought?.();
               Alert.alert('구매 완료', `${entry.name}을(를) 샀어요!`);
             } catch (e) {
               if (e instanceof NotEnoughCoinsError) {
@@ -123,11 +140,14 @@ export function ShopPanel({ tailRight = 27, style }: Props) {
                   '코인이 부족해요',
                   '잔액이 바뀌었어요. 다시 확인해 주세요.',
                 );
+              } else if (e instanceof ShopRuleError) {
+                Alert.alert(entry.name, RULE_TEXT[e.rule]);
               } else {
                 Alert.alert('구매 실패', '잠시 후 다시 시도해 주세요.');
               }
             } finally {
               notifyCoinsChanged();
+              notifyShopChanged();
               await loadShop();
               setBuying(false);
             }
@@ -135,6 +155,57 @@ export function ShopPanel({ tailRight = 27, style }: Props) {
         },
       ],
     );
+  };
+
+  // 테마: 안 가졌으면 구매(사면 바로 적용), 가졌으면 적용 ↔ 기본 테마로 되돌리기
+  const handleThemePress = async (t: ShopTheme) => {
+    if (buying || !(await requireLogin())) return;
+    const server = shop?.itemsByName.get(t.name);
+    if (!server) {
+      Alert.alert(t.name, '아직 판매 준비 중인 테마예요.');
+      return;
+    }
+    const themeIds = serverThemeIds(shop!);
+    if (isOwned(t)) {
+      try {
+        await equipTheme(isEquipped(t) ? null : server.id, themeIds);
+        await loadShop();
+      } catch {
+        Alert.alert('테마 적용 실패', '잠시 후 다시 시도해 주세요.');
+      }
+      return;
+    }
+    purchase(t, server, () => equipTheme(server.id, themeIds));
+  };
+
+  // 아이템: 테마를 가져야 하고, 앞 단계부터 순서대로
+  const handleItemPress = async (
+    t: ShopTheme,
+    item: ShopItem,
+    index: number,
+  ) => {
+    if (buying || !(await requireLogin())) return;
+    if (isOwned(item)) {
+      Alert.alert(item.name, '이미 가지고 있어요.');
+      return;
+    }
+    const server = shop?.itemsByName.get(item.name);
+    if (!server) {
+      // 서버 items 테이블에 아직 없는 아이템 — BE 에 같은 이름으로 등록돼야 살 수 있다.
+      Alert.alert(item.name, '아직 판매 준비 중인 아이템이에요.');
+      return;
+    }
+    const lock = lockOf(t, index);
+    if (lock === 'themeFirst') {
+      Alert.alert(item.name, `${t.name} 테마를 먼저 구매해야 해요.`);
+      return;
+    }
+    if (lock === 'inOrder') {
+      const next = t.items[themeProgress(t, shop!).ownedCount];
+      Alert.alert(item.name, `${next.name}부터 차례대로 구매해야 해요.`);
+      return;
+    }
+    purchase(item, server);
   };
 
   const handleMomentumEnd = useCallback(
@@ -173,7 +244,8 @@ export function ShopPanel({ tailRight = 27, style }: Props) {
                 theme={item}
                 price={priceOf(item)}
                 owned={isOwned(item)}
-                onPress={() => handleBuy(item)}
+                equipped={isEquipped(item)}
+                onPress={() => handleThemePress(item)}
               />
             )}
           />
@@ -190,14 +262,15 @@ export function ShopPanel({ tailRight = 27, style }: Props) {
         <View style={styles.itemColumn}>
           <Text style={styles.sectionTitle}>아이템</Text>
           <View style={styles.grid} onLayout={handleGridLayout}>
-            {theme.items.map(item => (
+            {theme.items.map((item, i) => (
               <ItemCard
                 key={item.id}
                 item={item}
                 size={itemSize}
                 price={priceOf(item)}
                 owned={isOwned(item)}
-                onPress={() => handleBuy(item)}
+                locked={!isOwned(item) && lockOf(theme, i) !== null}
+                onPress={() => handleItemPress(theme, item, i)}
               />
             ))}
           </View>
@@ -216,12 +289,17 @@ function ThemeCard({
   theme,
   price,
   owned,
+  equipped,
   onPress,
-}: { theme: ShopTheme } & CardProps) {
+}: { theme: ShopTheme; equipped: boolean } & CardProps) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${theme.name} 테마, ${price} 코인`}
+      accessibilityLabel={
+        owned
+          ? `${theme.name} 테마, ${equipped ? '적용 중' : '누르면 적용'}`
+          : `${theme.name} 테마, ${price} 코인`
+      }
       onPress={onPress}
       style={({ pressed }) => [styles.themeCard, pressed && styles.pressed]}
     >
@@ -230,8 +308,13 @@ function ThemeCard({
       ) : (
         <Placeholder label={theme.name} />
       )}
-      {/* 보유 표시는 일단 빼 둔다 — 가진 테마는 가격만 숨긴다. */}
+      {/* 가진 테마는 가격 대신, 적용 중이면 표시 (누르면 적용 ↔ 기본 테마) */}
       {!owned && <PriceTag price={price} />}
+      {equipped && (
+        <View style={styles.equippedBadge}>
+          <Text style={styles.equippedText}>적용 중</Text>
+        </View>
+      )}
     </Pressable>
   );
 }
@@ -241,13 +324,14 @@ function ItemCard({
   size,
   price,
   owned,
+  locked,
   onPress,
-}: { item: ShopItem; size: number } & CardProps) {
+}: { item: ShopItem; size: number; locked: boolean } & CardProps) {
   // TODO: 배치(홈 화면에 놓기)는 아직 없다.
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${item.name}, ${price} 코인`}
+      accessibilityLabel={`${item.name}, ${locked ? '잠김' : `${price} 코인`}`}
       onPress={onPress}
       style={({ pressed }) => [
         styles.itemCard,
@@ -264,8 +348,9 @@ function ItemCard({
       ) : (
         <Placeholder label={item.name} />
       )}
-      {/* 보유 표시는 일단 빼 둔다 — 가진 아이템은 가격만 숨긴다. */}
-      {!owned && <PriceTag price={price} />}
+      {/* 가진 아이템은 가격을 숨기고, 아직 못 사는 아이템은 흐리게 + 자물쇠 */}
+      {locked && <View style={styles.lockedDim} />}
+      {!owned && (locked ? <LockTag /> : <PriceTag price={price} />)}
     </Pressable>
   );
 }
@@ -277,6 +362,14 @@ function Placeholder({ label }: { label: string }) {
       <Text style={styles.placeholderText} numberOfLines={2}>
         {label}
       </Text>
+    </View>
+  );
+}
+
+function LockTag() {
+  return (
+    <View style={styles.priceTag}>
+      <Text style={styles.lockText}>🔒</Text>
     </View>
   );
 }
@@ -402,6 +495,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
+  },
+  lockedDim: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(255,255,255,0.55)',
+  },
+  lockText: {
+    fontSize: 11,
+  },
+  equippedBadge: {
+    position: 'absolute',
+    left: 8,
+    bottom: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    backgroundColor: '#8DC63F',
+  },
+  equippedText: {
+    fontFamily: fonts.kkukkukk,
+    fontSize: 11,
+    color: '#FFFFFF',
   },
   priceCoin: {
     width: 14,

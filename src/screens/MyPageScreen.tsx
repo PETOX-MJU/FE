@@ -164,8 +164,13 @@ export function MyPageScreen({ navigation }: Props) {
     });
   };
 
-  // TODO: 감지 앱·목표·시간대 상세 화면은 아직 없다 — 화면이 생기면 navigate 로 바꾼다.
-  // 회원탈퇴는 BE Edge Function(delete-account) 연동 시 확인 절차와 함께 붙인다.
+  // 사용자 관리 3개는 로그인해야 서버에 저장할 수 있다. 회원탈퇴는 BE Edge Function(delete-account) 연동 시 확인 절차와 함께 붙인다.
+  const needLogin =
+    (route: 'DetectedApps' | 'GoalSettings' | 'BlockTimeSettings') => () =>
+      signedIn
+        ? navigation.navigate(route)
+        : Alert.alert('로그인이 필요해요', '로그인하면 설정을 바꿀 수 있어요.');
+
   const sections: MenuSection[] = [
     {
       title: '펫 프로필',
@@ -213,9 +218,9 @@ export function MyPageScreen({ navigation }: Props) {
         {
           kind: 'links',
           items: [
-            { label: '감지 앱 관리', onPress: soon('감지 앱 관리') },
-            { label: '목표 관리', onPress: soon('목표 관리') },
-            { label: '시간대 설정', onPress: soon('시간대 설정') },
+            { label: '감지 앱 관리', onPress: needLogin('DetectedApps') },
+            { label: '목표 관리', onPress: needLogin('GoalSettings') },
+            { label: '시간대 설정', onPress: needLogin('BlockTimeSettings') },
           ],
         },
       ],

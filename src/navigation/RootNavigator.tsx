@@ -4,6 +4,9 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { HomeScreen } from '@/screens/HomeScreen';
 import { ScreentimeDashboardScreen } from '@/screens/ScreentimeDashboardScreen';
 import { MyPageScreen } from '@/screens/MyPageScreen';
+import { GoalSettingsScreen } from '@/screens/settings/GoalSettingsScreen';
+import { DetectedAppsScreen } from '@/screens/settings/DetectedAppsScreen';
+import { BlockTimeSettingsScreen } from '@/screens/settings/BlockTimeSettingsScreen';
 import { SplashScreen } from '@/screens/SplashScreen';
 import { LoginScreen } from '@/screens/LoginScreen';
 import { EmailLoginScreen } from '@/screens/EmailLoginScreen';
@@ -26,7 +29,8 @@ export type RootStackParamList = {
   OnboardingWelcome: { nickname?: string } | undefined;
   OnboardingGoal: undefined;
   OnboardingBlockTime: { goalMinutes: number };
-  OnboardingCustomTime: { goalMinutes: number };
+  /** 온보딩(goalMinutes) 또는 마이페이지 시간대 설정(fromSettings)에서 연다 */
+  OnboardingCustomTime: { goalMinutes?: number; fromSettings?: boolean };
   OnboardingCharacter: { goalMinutes: number; blockSlots: string[] };
   OnboardingPetPhoto: { goalMinutes: number; blockSlots: string[] };
   OnboardingConvert: { goalMinutes: number; blockSlots: string[] };
@@ -41,6 +45,10 @@ export type RootStackParamList = {
   Home: undefined;
   ScreentimeDashboard: undefined;
   MyPage: undefined;
+  GoalSettings: undefined;
+  DetectedApps: undefined;
+  /** addSlot: 직접 추가 화면에서 고른 구간("HH:00~HH:00")을 돌려받는다 */
+  BlockTimeSettings: { addSlot?: string } | undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -53,7 +61,8 @@ export function RootNavigator() {
     <NavigationContainer>
       <Stack.Navigator
         initialRouteName="Splash"
-        screenOptions={{ headerShown: false }}>
+        screenOptions={{ headerShown: false }}
+      >
         <Stack.Screen
           name="Splash"
           component={SplashScreen}
@@ -115,8 +124,17 @@ export function RootNavigator() {
           options={authOptions}
         />
         <Stack.Screen name="Home" component={HomeScreen} />
-        <Stack.Screen name="ScreentimeDashboard" component={ScreentimeDashboardScreen} />
+        <Stack.Screen
+          name="ScreentimeDashboard"
+          component={ScreentimeDashboardScreen}
+        />
         <Stack.Screen name="MyPage" component={MyPageScreen} />
+        <Stack.Screen name="GoalSettings" component={GoalSettingsScreen} />
+        <Stack.Screen name="DetectedApps" component={DetectedAppsScreen} />
+        <Stack.Screen
+          name="BlockTimeSettings"
+          component={BlockTimeSettingsScreen}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

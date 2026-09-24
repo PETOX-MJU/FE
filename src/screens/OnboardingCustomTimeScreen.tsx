@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BoneButton } from '@/components/BoneButton';
 import { OnboardingHeader } from '@/components/OnboardingHeader';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { onboardingStrings as S } from '@/constants/onboardingStrings';
 import { petoxColors, petoxLayout, petoxTextBase } from '@/theme/petox';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
@@ -65,7 +66,8 @@ function HourWheel({ hours, value, onChange, scrollRef }: WheelProps) {
         decelerationRate="fast"
         nestedScrollEnabled
         onMomentumScrollEnd={onSettle}
-        onScrollEndDrag={onSettle}>
+        onScrollEndDrag={onSettle}
+      >
         {hours.map(h => (
           <View key={h} style={styles.wheelItem}>
             <Text style={styles.timeText}>{pad(h)}</Text>
@@ -77,7 +79,7 @@ function HourWheel({ hours, value, onChange, scrollRef }: WheelProps) {
 }
 
 export function OnboardingCustomTimeScreen({ navigation, route }: Props) {
-  const { goalMinutes } = route.params;
+  const { goalMinutes = 60, fromSettings = false } = route.params ?? {};
   const [start, setStart] = useState(1);
   const [end, setEnd] = useState(3);
 
@@ -159,9 +161,22 @@ export function OnboardingCustomTimeScreen({ navigation, route }: Props) {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.body}>
-        <OnboardingHeader step={2} total={4} onBack={() => navigation.goBack()} />
+        {/* 마이페이지 > 시간대 설정에서 열면 진행바 대신 일반 헤더 */}
+        {fromSettings ? (
+          <ScreenHeader
+            title="시간대 직접 추가"
+            onBack={() => navigation.goBack()}
+            style={styles.settingsHeader}
+          />
+        ) : (
+          <OnboardingHeader
+            step={2}
+            total={4}
+            onBack={() => navigation.goBack()}
+          />
+        )}
 
-        <Text style={styles.title}>{S.blockTitle}</Text>
+        {!fromSettings && <Text style={styles.title}>{S.blockTitle}</Text>}
         <Text style={styles.subtitle}>{S.customTimeSubtitle}</Text>
 
         {/* 시작 ~ 종료 (위아래로 굴려서 조절) */}
@@ -186,7 +201,8 @@ export function OnboardingCustomTimeScreen({ navigation, route }: Props) {
           ref={trackRef}
           style={styles.track}
           onLayout={measureTrack}
-          {...pan.panHandlers}>
+          {...pan.panHandlers}
+        >
           {Array.from({ length: HOURS }, (_, h) => (
             <View
               key={h}
@@ -206,13 +222,18 @@ export function OnboardingCustomTimeScreen({ navigation, route }: Props) {
         <View style={styles.spacer} />
 
         <BoneButton
-          text={S.next}
-          onPress={() =>
-            navigation.navigate('OnboardingCharacter', {
-              goalMinutes,
-              blockSlots: [`${pad(start)}~${pad(end)}`],
-            })
-          }
+          text={fromSettings ? '추가하기' : S.next}
+          onPress={() => {
+            const range = `${pad(start)}~${pad(end)}`;
+            if (fromSettings) {
+              navigation.popTo('BlockTimeSettings', { addSlot: range });
+            } else {
+              navigation.navigate('OnboardingCharacter', {
+                goalMinutes,
+                blockSlots: [range],
+              });
+            }
+          }}
         />
       </View>
     </SafeAreaView>
@@ -221,6 +242,8 @@ export function OnboardingCustomTimeScreen({ navigation, route }: Props) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: petoxColors.white },
+  // body 가 이미 좌우 여백을 준다
+  settingsHeader: { paddingHorizontal: 0 },
   body: {
     flex: 1,
     paddingHorizontal: petoxLayout.screenPadding,

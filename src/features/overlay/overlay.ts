@@ -8,6 +8,7 @@ import {
 import { homePetImages, petImages } from '@/assets/images';
 import { screentime } from '@/features/screentime/onDevice';
 import { loadPetProfile } from '@/storage/petProfile';
+import { enabledAppPackages } from '@/api/settings';
 
 // 펫 오버레이 — 숏폼 앱을 오래 보면 내 펫이 다른 앱 위에 나타난다.
 // 실제 감지·표시는 안드로이드 포그라운드 서비스(OverlayService.kt)가 한다.
@@ -35,14 +36,28 @@ export const OVERLAY_TIMING = __DEV__
   ? { appearAfterSec: 5, growEverySec: 5 }
   : { appearAfterSec: 60, growEverySec: 30 };
 
-/** 감지할 숏폼 앱. 개발 모드에선 에뮬레이터 테스트용으로 크롬도 넣는다 (유튜브·인스타 없이 확인 가능). */
+/**
+ * 기본 감지 앱 (서버 설정을 못 읽었을 때). 실제로는 마이페이지 > 감지 앱 관리에서 켠 앱만 본다.
+ * 개발 모드에선 에뮬레이터 테스트용으로 크롬도 넣는다 (유튜브·인스타 없이 확인 가능).
+ */
+const DEV_TARGETS = __DEV__ ? ['com.android.chrome'] : [];
 export const OVERLAY_TARGETS = [
   'com.google.android.youtube',
   'com.instagram.android',
   'com.zhiliaoapp.musically',
   'com.ss.android.ugc.trill',
-  ...(__DEV__ ? ['com.android.chrome'] : []),
+  ...DEV_TARGETS,
 ];
+
+/** 감지 앱 관리에서 켠 앱 (+ 틱톡 해외판 패키지, 개발용 크롬) */
+async function currentTargets(): Promise<string[]> {
+  const pkgs = await enabledAppPackages();
+  if (!pkgs) return OVERLAY_TARGETS;
+  const withAlias = pkgs.includes('com.zhiliaoapp.musically')
+    ? [...pkgs, 'com.ss.android.ugc.trill']
+    : pkgs;
+  return [...withAlias, ...DEV_TARGETS];
+}
 
 export const overlayAvailable =
   Platform.OS === 'android' && native !== undefined;
@@ -92,7 +107,10 @@ async function currentPetUri(): Promise<string | undefined> {
  */
 export async function syncOverlay(): Promise<boolean> {
   if (!overlayAvailable) {
-    if (__DEV__) console.log('[overlay] 네이티브 모듈 없음 — npm run android 로 다시 빌드 필요');
+    if (__DEV__)
+      console.log(
+        '[overlay] 네이티브 모듈 없음 — npm run android 로 다시 빌드 필요',
+      );
     return false;
   }
   const p = await checkOverlayPermissions();
@@ -101,13 +119,15 @@ export async function syncOverlay(): Promise<boolean> {
   await native!.start({
     petUri: await currentPetUri(),
     ...OVERLAY_TIMING,
-    targets: OVERLAY_TARGETS,
+    targets: await currentTargets(),
   });
   return true;
 }
 
 /** 다음에 안내할 권한 (없으면 null). 다른 앱 위에 표시 → 사용 정보 접근 순서. */
-export async function nextMissingPermission(): Promise<'overlay' | 'usage' | null> {
+export async function nextMissingPermission(): Promise<
+  'overlay' | 'usage' | null
+> {
   if (!overlayAvailable) return null;
   const p = await checkOverlayPermissions();
   if (!p.overlay) return 'overlay';

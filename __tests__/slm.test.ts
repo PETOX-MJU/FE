@@ -12,11 +12,12 @@ function fakeContext(content: string, delayMs = 0) {
 // 모듈 안의 메모·대기열을 테스트마다 비운다. resetModules 뒤에는 llama.rn 목도 새 인스턴스라 다시 require 한다.
 let rewriteSummary: typeof import('../src/features/screentime/slm').rewriteSummary;
 let init: jest.Mock;
+let warnSpy: jest.SpyInstance;
 beforeEach(() => {
   jest.resetModules();
   init = require('llama.rn').initLlama;
   jest.spyOn(console, 'log').mockImplementation(() => {});
-  jest.spyOn(console, 'warn').mockImplementation(() => {});
+  warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
   ({ rewriteSummary } = require('../src/features/screentime/slm'));
 });
 afterEach(() => jest.useRealTimers());
@@ -34,6 +35,7 @@ test('검사를 통과하면 앱 이름을 채워 돌려주고 모델을 해제�
 test('검사에 걸리면 null (숫자가 사실에 없음)', async () => {
   init.mockResolvedValue(fakeContext('그 전주보다 30분 줄였어요!'));
   await expect(rewriteSummary(FACT, 'YouTube', 1)).resolves.toBeNull();
+  expect(warnSpy).toHaveBeenCalled();
 });
 
 test('모델 파일이 없으면(초기화 실패) null', async () => {
@@ -60,6 +62,7 @@ test('불러오는 중 시간 초과여도 적재가 끝나면 해제한다', as
   const result = rewriteSummary(FACT, 'YouTube', 1);
   await jest.advanceTimersByTimeAsync(25_000);
   await expect(result).resolves.toBeNull();
+  expect(ctx.completion).not.toHaveBeenCalled();
   expect(ctx.release).toHaveBeenCalled();
 });
 

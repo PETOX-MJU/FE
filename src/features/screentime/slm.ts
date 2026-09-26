@@ -29,8 +29,10 @@ export function rewriteSummary(fact: string, app: string, seed: number): Promise
 async function generate(fact: string, seed: number): Promise<string | null> {
   const started = Date.now();
   const held: { ctx?: LlamaContext } = {};
+  let timedOut = false;
   const work = (async () => {
     held.ctx = await initLlama({ model: MODEL_PATH, n_ctx: 512, n_threads: 4, n_gpu_layers: 0, use_mlock: false });
+    if (timedOut) return null; // 적재만 늦었을 뿐 이미 시간 초과 처리됨 — 생성은 돌리지 않는다.
     const loadedMs = Date.now() - started;
     const result = await held.ctx.completion({
       messages: [
@@ -47,7 +49,7 @@ async function generate(fact: string, seed: number): Promise<string | null> {
   })();
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<null>(resolve => {
-    timer = setTimeout(() => resolve(null), TIMEOUT_MS);
+    timer = setTimeout(() => { timedOut = true; resolve(null); }, TIMEOUT_MS);
   });
   try {
     const done = await Promise.race([work, timeout]);
@@ -58,12 +60,13 @@ async function generate(fact: string, seed: number): Promise<string | null> {
     const out = done.result.content.trim();
     const errs = failures(fact, out);
     // 시연 중 logcat(ReactNativeJS)으로 속도·판정을 본다
-    console.log(
-      `[slm] 적재 ${done.loadedMs}ms, 전체 ${Date.now() - started}ms, ${done.result.timings.predicted_per_second.toFixed(1)} tok/s`,
-      errs.length ? `검사 실패 ${errs.join(', ')}` : '통과',
-      out,
-    );
-    return errs.length ? null : out;
+    const line = `[slm] 적재 ${done.loadedMs}ms, 전체 ${Date.now() - started}ms, ${done.result.timings.predicted_per_second.toFixed(1)} tok/s`;
+    if (errs.length) {
+      console.warn(line, `검사 실패 ${errs.join(', ')}`, out);
+      return null;
+    }
+    console.log(line, '통과', out);
+    return out;
   } catch (e) {
     console.warn('[slm] 템플릿 사용:', e instanceof Error ? e.message : e);
     return null;

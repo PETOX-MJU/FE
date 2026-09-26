@@ -1,5 +1,9 @@
+import { LogBox } from 'react-native';
 import { initLlama, type LlamaContext } from 'llama.rn';
 import { SYSTEM, failures, fill } from '@/features/screentime/slmCheck';
+
+// 시연(디버그 빌드)에서 예상된 fallback(모델 없음·검사 실패 등)까지 노란 토스트로 뜨면 안 된다 — logcat 에는 그대로 남는다.
+LogBox.ignoreLogs(['[slm]']);
 
 // ponytail: 시연용 고정 경로 — adb 로 넣는다(AI 저장소 slm_summary/README). 배포 때는 모델 다운로드로 바꾼다.
 const MODEL_PATH = 'file:///data/data/com.petoxmju.petox/files/ft-v2-q4.gguf';

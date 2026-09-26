@@ -1,5 +1,5 @@
 import preview from './fixtures/screentimePreview.json';
-import { keepWords, monthCalendar, toDashboardModel, toMissionCards } from '../src/features/screentime/dashboard';
+import { appName, keepWords, monthCalendar, summaryTitle, toDashboardModel, toMissionCards } from '../src/features/screentime/dashboard';
 import { DEFAULT_SETTINGS, mergeSettings } from '../src/features/screentime/onDevice';
 
 test('derives dashboard values from analysis output', () => {
@@ -66,4 +66,22 @@ test('missing comparison week reads as not comparable, not as no change', () => 
   (analysis.metrics.comparison as { selected_delta_ms: number | null }).selected_delta_ms = null;
 
   expect(toDashboardModel({ analysis })).toMatchObject({ deltaLabel: '비교할 기록 부족', deltaTone: 'neutral' });
+});
+
+test('한줄 요약 제목에 반려견 이름을 단다', () => {
+  expect(summaryTitle('초코')).toBe('초코의 한줄 요약');
+  expect(summaryTitle('  ')).toBe('한줄 요약');
+  expect(summaryTitle(null)).toBe('한줄 요약');
+  expect(summaryTitle('가나다라마바사아자')).toBe('가나다라마바사아…의 한줄 요약');
+});
+
+test('앱 표시명은 APP_META 이름, 없으면 패키지명', () => {
+  expect(appName('com.zhiliaoapp.musically')).toBe('TikTok');
+  expect(appName('com.example.unknown')).toBe('com.example.unknown');
+});
+
+test('SLM 입력으로 첫 insight 와 주 시작일을 넘긴다', () => {
+  const dashboard = toDashboardModel(preview);
+  expect(dashboard.insight?.code).toBe('SELECTED_USAGE_DECREASED');
+  expect(dashboard.weekStart).toBe('2026-09-14');
 });

@@ -11,7 +11,7 @@ type AnalysisApp = {
 };
 
 export type AnalysisOutput = {
-  insights: Array<{ code: string; text: string }>;
+  insights: Array<{ code: string; text: string; evidence: Record<string, unknown> }>;
   metrics: {
     selected_total_ms: number | null;
     per_day: AnalysisDay[];
@@ -31,6 +31,19 @@ const APP_META: Record<string, { name: string; color: string; initial: string }>
   'com.instagram.android': { name: 'Instagram', color: '#D86DEB', initial: 'I' },
   'com.zhiliaoapp.musically': { name: 'TikTok', color: '#171717', initial: 'T' },
 };
+
+/** 한줄 요약 문장에 넣을 앱 표시명. */
+export const appName = (packageName: string) => APP_META[packageName]?.name ?? packageName;
+
+const MAX_PET_NAME = 8; // 스티커가 넘치지 않게. 이름 입력에는 길이 제한이 없다.
+
+/** "초코의 한줄 요약". 이름이 없으면(로그인 전·프로필 없음) "한줄 요약". "의" 는 받침과 상관없이 붙는다. */
+export function summaryTitle(petName: string | null | undefined): string {
+  const name = Array.from(petName?.trim() ?? '');
+  if (!name.length) return '한줄 요약';
+  const shown = name.length > MAX_PET_NAME ? `${name.slice(0, MAX_PET_NAME).join('')}…` : name.join('');
+  return `${shown}의 한줄 요약`;
+}
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -119,6 +132,9 @@ export function toDashboardModel(input: DashboardInput) {
     ...delta(deltaMs),
     // 명세 4.6: insights[0].text 를 그대로 쓰고, 비어 있으면 요약을 숨긴다.
     summary: output.insights[0] ? keepWords(output.insights[0].text) : null,
+    // SLM 이 바꿔 쓸 원문과 시드용 주 시작일
+    insight: output.insights[0] ?? null,
+    weekStart: output.metrics.per_day[0]?.date ?? null,
     periodLabel:
       currentDays.length > 0
         ? `${shortDate(currentDays[0].date)} ~ ${shortDate(currentDays[currentDays.length - 1].date)}`

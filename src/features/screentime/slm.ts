@@ -8,6 +8,16 @@ const TIMEOUT_MS = 15_000;
 let queue: Promise<unknown> = Promise.resolve();
 let last: { key: string; out: string | null } | null = null;
 
+// 실기기에서 stopCompletion/release 가 프라미스가 아닌 값을 돌려주거나 동기적으로 던지는 걸 봤다.
+// 정리는 항상 시도해야 한다 — 무엇을 돌려주든 삼킨다.
+async function quietly(f: () => unknown): Promise<void> {
+  try {
+    await f();
+  } catch {
+    // 정리 실패는 무시 — release 를 못 불러도 다음 단계(work 대기, 마지막 release)는 계속한다.
+  }
+}
+
 /**
  * 분석기 사실 하나를 반려견 말투 한 문장으로. 검사를 통과해 앱 이름까지 채운 문장, 아니면 null.
  * null 이면 호출하는 쪽이 템플릿 문장을 그대로 쓴다.
@@ -57,7 +67,8 @@ async function generate(fact: string, seed: number): Promise<string | null> {
       console.warn('[slm] 15초 초과, 템플릿 사용');
       return null;
     }
-    const out = done.result.content.trim();
+    // llama-server 는 사고 과정을 message.content 에서 걸러내지만, 빈 <think></think> 껍데기는 남을 수 있다.
+    const out = done.result.content.replace(/^\s*<think>[\s\S]*?<\/think>\s*/, '').trim();
     const errs = failures(fact, out);
     // 시연 중 logcat(ReactNativeJS)으로 속도·판정을 본다
     const line = `[slm] 적재 ${done.loadedMs}ms, 전체 ${Date.now() - started}ms, ${done.result.timings.predicted_per_second.toFixed(1)} tok/s`;
@@ -73,8 +84,8 @@ async function generate(fact: string, seed: number): Promise<string | null> {
   } finally {
     clearTimeout(timer);
     // 시간 초과면 생성을 멈추고, 적재 중이었다면 끝날 때까지 기다렸다가 해제한다.
-    await held.ctx?.stopCompletion().catch(() => {});
+    await quietly(() => held.ctx?.stopCompletion());
     await work.catch(() => {});
-    await held.ctx?.release().catch(() => {});
+    await quietly(() => held.ctx?.release());
   }
 }

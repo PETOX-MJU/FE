@@ -85,3 +85,38 @@ test('같은 사실·시드는 다시 생성하지 않는다 (앱 복귀 때마�
   await rewriteSummary(FACT, 'YouTube', 1);
   expect(init).toHaveBeenCalledTimes(1);
 });
+
+test('stopCompletion 이 프라미스가 아니어도(동기 값) 해제하고 거부하지 않는다', async () => {
+  jest.useFakeTimers();
+  const ctx = {
+    completion: jest.fn(() => new Promise(r => setTimeout(() => r({ content: '그 전주보다 29분 줄였어요!', timings: { predicted_per_second: 20 } }), 60_000))),
+    stopCompletion: jest.fn(() => undefined),
+    release: jest.fn(async () => {}),
+  };
+  init.mockResolvedValue(ctx);
+  const result = rewriteSummary(FACT, 'YouTube', 1);
+  await jest.advanceTimersByTimeAsync(15_000);
+  await jest.advanceTimersByTimeAsync(60_000);
+  await expect(result).resolves.toBeNull();
+  expect(ctx.release).toHaveBeenCalled();
+});
+
+test('stopCompletion 이 동기적으로 던져도 해제하고 거부하지 않는다', async () => {
+  jest.useFakeTimers();
+  const ctx = {
+    completion: jest.fn(() => new Promise(r => setTimeout(() => r({ content: '그 전주보다 29분 줄였어요!', timings: { predicted_per_second: 20 } }), 60_000))),
+    stopCompletion: jest.fn(() => { throw new Error('native crash'); }),
+    release: jest.fn(async () => {}),
+  };
+  init.mockResolvedValue(ctx);
+  const result = rewriteSummary(FACT, 'YouTube', 1);
+  await jest.advanceTimersByTimeAsync(15_000);
+  await jest.advanceTimersByTimeAsync(60_000);
+  await expect(result).resolves.toBeNull();
+  expect(ctx.release).toHaveBeenCalled();
+});
+
+test('<think> 블록을 검사·출력 전에 잘라낸다', async () => {
+  init.mockResolvedValue(fakeContext('<think>\n\n</think>\n\n그 전주보다 29분 줄였어요!'));
+  await expect(rewriteSummary(FACT, 'YouTube', 1)).resolves.toBe('그 전주보다 29분 줄였어요!');
+});

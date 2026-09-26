@@ -1,0 +1,77 @@
+import { initLlama, type LlamaContext } from 'llama.rn';
+import { SYSTEM, failures, fill } from '@/features/screentime/slmCheck';
+
+// ponytail: 시연용 고정 경로 — adb 로 넣는다(AI 저장소 slm_summary/README). 배포 때는 모델 다운로드로 바꾼다.
+const MODEL_PATH = 'file:///data/data/com.petoxmju.petox/files/ft-v2-q4.gguf';
+const TIMEOUT_MS = 15_000;
+
+let queue: Promise<unknown> = Promise.resolve();
+let last: { key: string; out: string | null } | null = null;
+
+/**
+ * 분석기 사실 하나를 반려견 말투 한 문장으로. 검사를 통과해 앱 이름까지 채운 문장, 아니면 null.
+ * null 이면 호출하는 쪽이 템플릿 문장을 그대로 쓴다.
+ *
+ * 모델은 1GB 가까이 메모리를 쓴다. 호출을 줄 세워 동시에 두 개를 올리지 않고,
+ * 대시보드가 앱 복귀 때마다 다시 분석해도 같은 사실·시드면 지난 결과를 쓴다.
+ */
+export function rewriteSummary(fact: string, app: string, seed: number): Promise<string | null> {
+  const key = `${seed}\n${fact}`;
+  const run = async () => {
+    if (last?.key !== key) last = { key, out: await generate(fact, seed) };
+    return last.out === null ? null : fill(last.out, app);
+  };
+  const result = queue.then(run, run);
+  queue = result.catch(() => {});
+  return result;
+}
+
+async function generate(fact: string, seed: number): Promise<string | null> {
+  const started = Date.now();
+  const held: { ctx?: LlamaContext } = {};
+  const work = (async () => {
+    held.ctx = await initLlama({ model: MODEL_PATH, n_ctx: 512, n_threads: 4, n_gpu_layers: 0, use_mlock: false });
+    const loadedMs = Date.now() - started;
+    const result = await held.ctx.completion({
+      messages: [
+        { role: 'system', content: SYSTEM },
+        { role: 'user', content: `사실: ${fact}` },
+      ],
+      jinja: true,
+      enable_thinking: false,
+      n_predict: 80,
+      temperature: 0.5,
+      seed,
+    });
+    return { result, loadedMs };
+  })();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<null>(resolve => {
+    timer = setTimeout(() => resolve(null), TIMEOUT_MS);
+  });
+  try {
+    const done = await Promise.race([work, timeout]);
+    if (done === null) {
+      console.warn('[slm] 15초 초과, 템플릿 사용');
+      return null;
+    }
+    const out = done.result.content.trim();
+    const errs = failures(fact, out);
+    // 시연 중 logcat(ReactNativeJS)으로 속도·판정을 본다
+    console.log(
+      `[slm] 적재 ${done.loadedMs}ms, 전체 ${Date.now() - started}ms, ${done.result.timings.predicted_per_second.toFixed(1)} tok/s`,
+      errs.length ? `검사 실패 ${errs.join(', ')}` : '통과',
+      out,
+    );
+    return errs.length ? null : out;
+  } catch (e) {
+    console.warn('[slm] 템플릿 사용:', e instanceof Error ? e.message : e);
+    return null;
+  } finally {
+    clearTimeout(timer);
+    // 시간 초과면 생성을 멈추고, 적재 중이었다면 끝날 때까지 기다렸다가 해제한다.
+    await held.ctx?.stopCompletion().catch(() => {});
+    await work.catch(() => {});
+    await held.ctx?.release().catch(() => {});
+  }
+}

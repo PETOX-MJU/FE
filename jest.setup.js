@@ -31,3 +31,6 @@ jest.mock('@/api/supabase', () => ({
     from: jest.fn(),
   },
 }));
+
+// 네이티브 모델 런타임. 테스트는 __tests__/slm.test.ts 에서 동작을 따로 정한다.
+jest.mock('llama.rn', () => ({ initLlama: jest.fn(async () => { throw new Error('jest: 모델 없음'); }) }));

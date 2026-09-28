@@ -15,15 +15,21 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import Svg, { Defs, LinearGradient, Line, Path, Polygon, Stop, Text as SvgText } from 'react-native-svg';
 import { supabase } from '@/api/supabase';
 import {
+  appName,
+  keepWords,
   localDateKey,
   monthCalendar,
+  summaryTitle,
   toDashboardModel,
   toMissionCards,
   type DashboardModel,
   type MissionRow,
 } from '@/features/screentime/dashboard';
 import { loadAnalysisSettings, screentime } from '@/features/screentime/onDevice';
+import { rewriteSummary } from '@/features/screentime/slm';
+import { toFact, weekSeed } from '@/features/screentime/slmCheck';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
+import { loadPetProfile } from '@/storage/petProfile';
 import { colors } from '@/theme/colors';
 import { petoxColors, petoxFont, petoxLayout, petoxTextBase } from '@/theme/petox';
 
@@ -206,6 +212,42 @@ function useOnDeviceAnalysis(): AnalysisState {
   return state;
 }
 
+// 온보딩에서 지은 반려견 이름. 로그인 전·프로필 없음이면 null.
+function usePetName(): string | null {
+  const [name, setName] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    loadPetProfile()
+      .then(profile => alive && setName(profile?.name ?? null))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return name;
+}
+
+// 템플릿 문장을 먼저 보여 주고, SLM 문장이 검사를 통과하면 바꾼다. 실패하면 null 로 남아 템플릿 유지.
+// 의존성을 문자열·숫자로 둔다: 앱 복귀 때마다 분석 객체가 새로 만들어져도 내용이 같으면 다시 돌지 않아 깜빡이지 않는다.
+function useSlmSummary(dashboard: DashboardModel | null): string | null {
+  const [text, setText] = useState<string | null>(null);
+  const insight = dashboard?.insight ?? null;
+  const fact = insight ? toFact(insight) : null;
+  const pkg = insight?.evidence.package_name;
+  const app = typeof pkg === 'string' ? appName(pkg) : '';
+  const seed = dashboard?.weekStart ? weekSeed(dashboard.weekStart) : null;
+  useEffect(() => {
+    setText(null);
+    if (fact === null || seed === null) return;
+    let alive = true;
+    rewriteSummary(fact, app, seed).then(out => alive && setText(out));
+    return () => {
+      alive = false;
+    };
+  }, [fact, app, seed]);
+  return text;
+}
+
 const ANALYSIS_MESSAGE = {
   loading: '사용 기록을 분석하는 중이에요',
   needsPermission: '사용 시간을 보려면 사용 정보 접근을 허용해 주세요',
@@ -219,13 +261,24 @@ const SERVER_MESSAGE = {
   error: '불러오지 못했어요',
 } as const;
 
-function AnalysisSections({ dashboard, chartWidth }: { dashboard: DashboardModel; chartWidth: number }) {
+function AnalysisSections({
+  dashboard,
+  chartWidth,
+  title,
+  slmText,
+}: {
+  dashboard: DashboardModel;
+  chartWidth: number;
+  title: string;
+  slmText: string | null;
+}) {
+  const summary = slmText ? keepWords(slmText) : dashboard.summary;
   return (
     <>
-        {dashboard.summary && (
+        {summary && (
           <>
-            <Sticker label="한줄 요약" color={tone.summary} />
-            <Text style={styles.summaryText}>“{dashboard.summary}”</Text>
+            <Sticker label={title} color={tone.summary} />
+            <Text style={styles.summaryText}>{summary}</Text>
             <Divider />
           </>
         )}
@@ -274,6 +327,8 @@ export function ScreentimeDashboardScreen({ navigation }: Props) {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const analysis = useOnDeviceAnalysis();
+  const petName = usePetName();
+  const slmText = useSlmSummary(analysis.status === 'ready' ? analysis.dashboard : null);
   const [today] = useState(() => new Date());
   const server = useServerData(today);
   const calendar = useMemo(() => monthCalendar(today, server.status === 'ready' ? server.attendance : []), [today, server]);
@@ -333,7 +388,7 @@ export function ScreentimeDashboardScreen({ navigation }: Props) {
         <Divider />
 
         {analysis.status === 'ready' ? (
-          <AnalysisSections dashboard={analysis.dashboard} chartWidth={chartWidth} />
+          <AnalysisSections dashboard={analysis.dashboard} chartWidth={chartWidth} title={summaryTitle(petName)} slmText={slmText} />
         ) : (
           <View style={styles.analysisEmpty}>
             <Text style={styles.emptyText}>{ANALYSIS_MESSAGE[analysis.status]}</Text>

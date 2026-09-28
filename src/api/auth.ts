@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/api/supabase';
 import { stopOverlay } from '@/features/overlay/overlay';
 import { petoxStrings as S } from '@/constants/petoxStrings';
-import { hasServerPet } from '@/api/onboarding';
+import { hasServerPet, restorePetProfileFromServer } from '@/api/onboarding';
 import { loadPetProfile } from '@/storage/petProfile';
 
 // ADR-002: 로그인·회원가입은 FastAPI(/auth/signup)를 거치지 않고 Supabase Auth 를 직접 쓴다.
@@ -93,7 +93,14 @@ export async function hasSession(): Promise<boolean> {
 export async function routeAfterLogin(): Promise<'Home' | 'OnboardingWelcome'> {
   try {
     const server = await hasServerPet();
-    if (server !== null) return server ? 'Home' : 'OnboardingWelcome';
+    if (server) {
+      // 새 기기·재설치면 기기에 펫 정보가 없다 — 서버 펫으로 되살린다 (마이페이지·펫 슬롯이 비지 않게)
+      await restorePetProfileFromServer().catch(e =>
+        console.warn('펫 정보 복원 실패', e),
+      );
+      return 'Home';
+    }
+    if (server === false) return 'OnboardingWelcome';
     return (await loadPetProfile()) !== null ? 'Home' : 'OnboardingWelcome';
   } catch {
     return 'OnboardingWelcome';

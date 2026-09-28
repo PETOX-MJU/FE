@@ -1,4 +1,10 @@
 import { supabase } from '@/api/supabase';
+import { PETS, type PetId } from '@/constants/onboardingStrings';
+import {
+  loadPetProfile,
+  savePetProfile,
+  type LocalPet,
+} from '@/storage/petProfile';
 
 // 온보딩 결과를 서버에 올리고, 온보딩을 마쳤는지 서버 기준으로 확인한다.
 // "펫이 등록돼 있으면 온보딩 완료" — 온보딩 마지막 단계가 펫 등록이라서.
@@ -74,7 +80,10 @@ export async function hasServerPet(): Promise<boolean | null> {
  * 마이페이지 펫 이름 변경을 서버 pets 에도 반영한다.
  * 펫이 여러 마리일 수 있어서, 서버 id 를 알면 그 펫만, 모르면(첫 펫) 가장 먼저 만든 펫만 바꾼다.
  */
-export async function renameServerPet(name: string, serverId?: string): Promise<void> {
+export async function renameServerPet(
+  name: string,
+  serverId?: string,
+): Promise<void> {
   const uid = await myUserId();
   if (!uid) return;
   let id = serverId;
@@ -137,4 +146,48 @@ export async function addServerPet(input: {
     throw error;
   }
   return data.id as string;
+}
+
+/**
+ * 기기에 펫 정보가 없는데 서버엔 펫이 있을 때(새 폰·에뮬레이터, 앱 재설치) 서버 기준으로 되살린다.
+ * 서버에 남는 건 펫 이름·견종(breed)·목표 시간뿐이라, 사진 캐릭터 그림과 숏폼 방지 시간대는
+ * 되살릴 수 없다 (견종 칸이 생기기 전에 만든 펫도 그림 없이 기본 캐릭터로 보인다).
+ * 되살렸으면 true.
+ */
+export async function restorePetProfileFromServer(): Promise<boolean> {
+  if (await loadPetProfile()) return false;
+  const uid = await myUserId();
+  if (!uid) return false;
+  const [petsRes, profileRes] = await Promise.all([
+    supabase
+      .from('pets')
+      .select('id, name, breed, created_at')
+      .eq('user_id', uid)
+      .order('created_at', { ascending: true }),
+    supabase
+      .from('profiles')
+      .select('goal_minutes')
+      .eq('id', uid)
+      .maybeSingle(),
+  ]);
+  if (petsRes.error || !petsRes.data || petsRes.data.length === 0) return false;
+  const known = new Set<string>(PETS.map(p => p.id));
+  const pets: LocalPet[] = petsRes.data.map(row => ({
+    id: `server-${row.id as string}`,
+    serverId: row.id as string,
+    name: (row.name as string) || '내 펫',
+    pet: known.has(row.breed as string) ? (row.breed as PetId) : undefined,
+    createdAt: (row.created_at as string) ?? new Date().toISOString(),
+  }));
+  const first = pets[0];
+  await savePetProfile({
+    name: first.name,
+    pet: first.pet,
+    goalMinutes: (profileRes.data?.goal_minutes as number | null) ?? 120,
+    blockSlots: [],
+    createdAt: first.createdAt,
+    pets,
+    activePetId: first.id,
+  });
+  return true;
 }

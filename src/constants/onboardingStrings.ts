@@ -63,6 +63,7 @@ export const onboardingStrings = {
 
   // 4단계: 캐릭터 확정
   confirmTitle: '이 캐릭터로 할까요?',
+  addPetAllOwned: '기본 캐릭터는 모두 함께하고 있어요\n내 반려동물 사진으로 만들어 보세요',
   addPetConfirmTitle: '새 친구의 이름을 지어 주세요',
   addPetConfirmSubmit: '새 친구 데려오기',
   confirmNameHint: '이름을 지어주세요',

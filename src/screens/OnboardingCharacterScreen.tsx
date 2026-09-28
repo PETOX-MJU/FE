@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -13,6 +13,7 @@ import {
 } from '@/constants/onboardingStrings';
 import { petoxColors, petoxLayout, petoxTextBase } from '@/theme/petox';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
+import { loadPetProfile, petList } from '@/storage/petProfile';
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
@@ -42,6 +43,29 @@ export function OnboardingCharacterScreen({ navigation, route }: Props) {
   const addPet = route.name === 'AddPetCharacter';
   const [pet, setPet] = useState<PetId>('golden');
   const [gridH, setGridH] = useState(0);
+  // 펫 추가 화면에선 이미 키우는 기본 캐릭터는 빼고 보여 준다
+  const [owned, setOwned] = useState<Set<PetId>>(new Set());
+  useEffect(() => {
+    if (!addPet) return;
+    loadPetProfile()
+      .then(profile => {
+        if (!profile) return;
+        const breeds = new Set(
+          petList(profile)
+            .map(p => p.pet)
+            .filter((b): b is PetId => b !== undefined),
+        );
+        setOwned(breeds);
+        // 처음 선택은 남은 것 중 첫 번째
+        const first = PETS.find(p => !breeds.has(p.id));
+        if (first) setPet(first.id);
+      })
+      .catch(() => {});
+  }, [addPet]);
+  const choices = PETS.filter(p => !owned.has(p.id));
+  const rows = [choices.slice(0, 2), choices.slice(2, 4)].filter(
+    r => r.length > 0,
+  );
 
   // 제목과 버튼 사이에 남는 높이를 두 줄로 나눠 스프라이트 크기를 정한다.
   const fitH = gridH > 0 ? (gridH - ROW_GAP) / 2 / CELL_H_RATIO : SPRITE_MAX;
@@ -78,7 +102,10 @@ export function OnboardingCharacterScreen({ navigation, route }: Props) {
         >
           {/* 2마리씩 두 줄. flexWrap 에 맡기면 소수점 반올림으로 한 줄에 1마리만 들어가
               세로로 쏟아져서, 줄을 직접 나눈다. */}
-          {[PETS.slice(0, 2), PETS.slice(2, 4)].map((row, r) => (
+          {choices.length === 0 && (
+            <Text style={styles.allOwned}>{S.addPetAllOwned}</Text>
+          )}
+          {rows.map((row, r) => (
             <View
               key={r}
               style={[
@@ -92,8 +119,7 @@ export function OnboardingCharacterScreen({ navigation, route }: Props) {
                 },
               ]}
             >
-              {row.map((p, j) => {
-                const i = r * 2 + j;
+              {row.map(p => {
                 const on = p.id === pet;
                 return (
                   <Pressable
@@ -122,7 +148,9 @@ export function OnboardingCharacterScreen({ navigation, route }: Props) {
                     <PetSprite
                       pet={p.id}
                       size={sprite}
-                      width={i === 0 ? sprite * SPRITE_W_RATIO : undefined}
+                      width={
+                        p.id === 'golden' ? sprite * SPRITE_W_RATIO : undefined
+                      }
                       style={[
                         styles.sprite,
                         { top: sprite * SPRITE_TOP_RATIO },
@@ -135,25 +163,27 @@ export function OnboardingCharacterScreen({ navigation, route }: Props) {
           ))}
         </View>
 
-        <BoneButton
-          text={S.next}
-          onPress={() =>
-            navigation.navigate(
-              addPet ? 'AddPetConfirm' : 'OnboardingConfirm',
-              { goalMinutes, blockSlots, pet },
-            )
-          }
-        />
+        {choices.length > 0 && (
+          <BoneButton
+            text={S.next}
+            onPress={() =>
+              navigation.navigate(
+                addPet ? 'AddPetConfirm' : 'OnboardingConfirm',
+                { goalMinutes, blockSlots, pet },
+              )
+            }
+          />
+        )}
         <BoneButton
           text={S.characterFromPhoto}
           icon={require('../assets/images/camera.png')}
           variant="outline"
           style={styles.photoBtn}
           onPress={() =>
-            navigation.navigate(
-              addPet ? 'AddPetPhoto' : 'OnboardingPetPhoto',
-              { goalMinutes, blockSlots },
-            )
+            navigation.navigate(addPet ? 'AddPetPhoto' : 'OnboardingPetPhoto', {
+              goalMinutes,
+              blockSlots,
+            })
           }
         />
       </View>
@@ -204,4 +234,11 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   photoBtn: { marginTop: 10 },
+  allOwned: {
+    ...petoxTextBase,
+    textAlign: 'center',
+    fontSize: 15,
+    lineHeight: 22,
+    color: petoxColors.hint,
+  },
 });

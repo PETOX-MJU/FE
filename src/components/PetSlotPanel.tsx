@@ -324,7 +324,7 @@ function PetCell({
 }
 
 /**
- * 맨 끝 "새 친구" 칸 — 밝은 점선 칸에 + 와 안내 문구, 그 아래 값(코인).
+ * 맨 끝 "새 친구" 칸 — 밝은 점선 칸에 + 와 안내 문구, 오른쪽 위에 값(코인).
  * 이미 사 둔 빈 슬롯이 있으면 값 없이 보여 준다.
  */
 function NewFriendCell({
@@ -400,8 +400,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#2B2B2B',
   },
-  // 새 친구 칸 — 문구 아래 값
+  // 새 친구 칸 오른쪽 위 — 새 친구를 데려오는 값
   priceRow: {
+    position: 'absolute',
+    top: 6,
+    right: 8,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,

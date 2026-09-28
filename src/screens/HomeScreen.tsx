@@ -34,6 +34,7 @@ import { GlassButton } from '@/components/GlassButton';
 import { BackdropContext, type Backdrop } from '@/components/GlassSurface';
 import { HomeTopActions } from '@/components/HomeTopActions';
 import { PET_SPRITE_W, PetCharacter } from '@/components/PetCharacter';
+import { PetSlotPanel } from '@/components/PetSlotPanel';
 import { petWalk as petWalks, type PetWalk } from '@/assets/images/petWalk';
 import { ShopPanel } from '@/components/ShopPanel';
 import { useCoinBalance } from '@/hooks/useCoinBalance';
@@ -51,6 +52,7 @@ const PET_Y = 546.5;
 const TOP_BAR_BELOW_STATUS = 36; // 상태바(32) 아래 36 → y 68
 const TOP_BAR_H = 50; // 상단 pill 높이
 const BOTTOM_BAR_BOTTOM = 50; // 홈 버튼 아래 여백 (917 - 839)
+const HOME_BTN_SIZE = 96; // 가운데 홈 버튼 지름 — 펫 슬롯 패널을 이 위에 띄운다
 
 // 온보딩에서 아무것도 못 불러왔을 때 보여줄 펫
 const DEFAULT_PET: PetId = 'rottweiler';
@@ -62,7 +64,10 @@ export function HomeScreen({ navigation }: Props) {
   const { width: screenW, height: screenH } = useWindowDimensions();
   // 코인은 서버 원장(coin_ledger) 합계. 로그인 전이거나 불러오기 전엔 0.
   const { coins } = useCoinBalance();
-  const [shopOpen, setShopOpen] = useState(false);
+  // 홈 위에 겹쳐 뜨는 말풍선 패널은 한 번에 하나만 (상점 ↔ 펫 슬롯)
+  const [openPanel, setOpenPanel] = useState<'shop' | 'pets' | null>(null);
+  const togglePanel = (which: 'shop' | 'pets') =>
+    setOpenPanel(cur => (cur === which ? null : which));
   const { canCheckIn, checkIn, devResetCheckIn } = useDailyCheckIn();
 
   // 온보딩에서 고른 내 펫. 사진으로 만든 캐릭터(generatedUri)가 있으면 그걸, 아니면 고른 기본 캐릭터.
@@ -71,6 +76,7 @@ export function HomeScreen({ navigation }: Props) {
   );
   // 걷기 그림이 있는 기본 캐릭터면 홈에서 좌우로 돌아다닌다 (코기·사진 캐릭터는 제자리)
   const [petWalk, setPetWalk] = useState<PetWalk | undefined>();
+  const [petName, setPetName] = useState<string | undefined>();
   // ---- 펫 오버레이 (필수 기능) ----
   // 홈에 올 때마다, 설정에서 돌아올 때마다 권한을 확인하고
   // 빠진 권한이 있으면 안내 팝업, 다 있으면 서비스를 (다시) 시작한다.
@@ -106,6 +112,7 @@ export function HomeScreen({ navigation }: Props) {
     useCallback(() => {
       loadPetProfile()
         .then(profile => {
+          setPetName(profile?.name);
           if (profile?.generatedUri) {
             setPetSource({ uri: profile.generatedUri });
             setPetWalk(undefined);
@@ -166,11 +173,11 @@ export function HomeScreen({ navigation }: Props) {
           }}
         />
 
-        {shopOpen && (
+        {openPanel !== null && (
           <Pressable
             style={StyleSheet.absoluteFill}
-            accessibilityLabel="상점 닫기"
-            onPress={() => setShopOpen(false)}
+            accessibilityLabel="닫기"
+            onPress={() => setOpenPanel(null)}
           />
         )}
 
@@ -179,12 +186,12 @@ export function HomeScreen({ navigation }: Props) {
         >
           <CoinBadge amount={coins ?? 0} />
           <HomeTopActions
-            shopOpen={shopOpen}
-            onPressShop={() => setShopOpen(open => !open)}
+            shopOpen={openPanel === 'shop'}
+            onPressShop={() => togglePanel('shop')}
           />
         </View>
 
-        {shopOpen && (
+        {openPanel === 'shop' && (
           <ShopPanel
             style={[
               styles.shopPanel,
@@ -211,8 +218,9 @@ export function HomeScreen({ navigation }: Props) {
             icon={homeImages.home}
             iconWidth={51}
             iconHeight={51}
-            size={96}
-            accessibilityLabel="홈"
+            size={HOME_BTN_SIZE}
+            accessibilityLabel={openPanel === 'pets' ? '펫 슬롯 닫기' : '펫 슬롯'}
+            onPress={() => togglePanel('pets')}
           />
           <GlassButton
             icon={homeImages.character}
@@ -223,6 +231,19 @@ export function HomeScreen({ navigation }: Props) {
             onPress={() => navigation.navigate('MyPage')}
           />
         </View>
+
+        {openPanel === 'pets' && (
+          <PetSlotPanel
+            petSource={petSource}
+            petName={petName}
+            style={[
+              styles.petSlotPanel,
+              {
+                bottom: insets.bottom + BOTTOM_BAR_BOTTOM + HOME_BTN_SIZE + 8,
+              },
+            ]}
+          />
+        )}
       </BackdropContext.Provider>
 
       <ConfirmModal
@@ -267,6 +288,12 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 18,
     right: 18,
+  },
+  // 홈 버튼 위로 펼쳐지는 펫 슬롯 패널 (꼬리가 홈 버튼을 가리킨다)
+  petSlotPanel: {
+    position: 'absolute',
+    left: 60,
+    right: 60,
   },
   bottomBar: {
     position: 'absolute',

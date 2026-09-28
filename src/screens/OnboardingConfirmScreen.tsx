@@ -125,7 +125,7 @@ export function OnboardingConfirmScreen({ navigation, route }: Props) {
       if (e instanceof PetSlotFullError) {
         showDialog({
           title: '빈 슬롯이 없어요',
-          message: '홈의 펫 슬롯에서 잠금을 먼저 풀어 주세요.',
+          message: '홈의 펫 슬롯에서 새 친구 칸을 다시 눌러 주세요.',
         });
       } else {
         showDialog({ title: '저장 실패', message: S.confirmErrorSave });

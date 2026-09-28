@@ -80,3 +80,6 @@ yarn-error.log
 
 # macOS 탐색기 메타데이터
 .DS_Store
+
+# llama.rn 이 빌드할 때 node_modules 에서 복사해 넣는 Hexagon(NPU) 라이브러리 — 빌드하면 다시 생김
+android/app/src/main/assets/ggml-hexagon/

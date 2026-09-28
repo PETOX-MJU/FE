@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   Image,
   Linking,
@@ -76,26 +77,30 @@ const HUSKY_DOT_H_PX = 296;
 const SPRITE_SIZE = (PET_H / HUSKY_DOT_H_PX) * SPRITE_PX; // ≈ 252dp
 const SPRITE_BOTTOM_PAD = (SPRITE_BOTTOM_PAD_PX / SPRITE_PX) * SPRITE_SIZE;
 
-/** 온보딩 전이거나 저장된 펫이 없을 때 — 피그마 시안과 같은 허스키. */
-const FALLBACK_PET: PetId = 'husky';
+/** 펫 종류를 모를 때 — 홈의 기본 펫(닥스훈트)과 같게 맞춘다 */
+const FALLBACK_PET: PetId = 'dachshund';
 
 export function MyPageScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { width: screenW, height: screenH } = useWindowDimensions();
   const [pet, setPet] = useState<PetId>(FALLBACK_PET);
   const [petName, setPetName] = useState('');
+  const [petUri, setPetUri] = useState<string | undefined>();
 
-  // 온보딩 확정 화면에서 저장한 내 펫(종류·이름)을 보여준다.
-  // TODO: 서버 pets 가 붙으면 그쪽에서 읽기. 사진으로 만든 캐릭터(generatedUri)도 표시.
-  useEffect(() => {
-    loadPetProfile()
-      .then(profile => {
-        if (!profile) return;
-        if (profile.pet) setPet(profile.pet);
-        setPetName(profile.name);
-      })
-      .catch(() => {});
-  }, []);
+  // 지금 홈에 나와 있는 펫(펫 슬롯에서 고른 펫)의 종류·이름을 보여준다.
+  // 펫 슬롯에서 바꾸고 돌아와도 맞도록 화면에 올 때마다 다시 읽는다.
+  useFocusEffect(
+    useCallback(() => {
+      loadPetProfile()
+        .then(profile => {
+          if (!profile) return;
+          setPet(profile.pet ?? FALLBACK_PET);
+          setPetUri(profile.generatedUri);
+          setPetName(profile.name);
+        })
+        .catch(() => {});
+    }, []),
+  );
 
   const [logoutOpen, setLogoutOpen] = useState(false);
   const onLogout = () => setLogoutOpen(true);
@@ -357,7 +362,18 @@ export function MyPageScreen({ navigation }: Props) {
 
           {/* 펫 + 이름판 */}
           <View style={styles.petStage}>
-            <PetSprite pet={pet} size={SPRITE_SIZE} style={styles.sprite} />
+            {petUri ? (
+              <Image
+                source={{ uri: petUri }}
+                resizeMode="contain"
+                style={[
+                  styles.sprite,
+                  { width: SPRITE_SIZE, height: SPRITE_SIZE },
+                ]}
+              />
+            ) : (
+              <PetSprite pet={pet} size={SPRITE_SIZE} style={styles.sprite} />
+            )}
           </View>
           {/* 이름판: RN 0.87 에서 ImageBackground 가 곧 없어져서 View + 뒤에 깐 Image 로 */}
           <View style={styles.plate}>

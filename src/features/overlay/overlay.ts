@@ -43,22 +43,19 @@ export const OVERLAY_TIMING = __DEV__
 
 /**
  * 기본 감지 앱 (서버 설정을 못 읽었을 때). 실제로는 마이페이지 > 감지 앱 관리에서 켠 앱만 본다.
- * 개발 모드에선 에뮬레이터 테스트용으로 크롬도 넣는다 (유튜브·인스타 없이 확인 가능).
+ * (예전엔 개발 모드에서 에뮬레이터 테스트용으로 크롬도 넣었는데, 유튜브가 깔린 뒤로는 빼 둔다)
  */
-const DEV_TARGETS = __DEV__ ? ['com.android.chrome'] : [];
 export const OVERLAY_TARGETS = [
   'com.google.android.youtube',
   'com.instagram.android',
   'com.zhiliaoapp.musically',
   'com.ss.android.ugc.trill',
-  ...DEV_TARGETS,
 ];
 
-/** 감지 앱으로 고른 앱 (+ 개발용 크롬) */
+/** 감지 앱으로 고른 앱 */
 async function currentTargets(): Promise<string[]> {
   const pkgs = await enabledAppPackages();
-  if (!pkgs) return OVERLAY_TARGETS;
-  return [...pkgs, ...DEV_TARGETS];
+  return pkgs ?? OVERLAY_TARGETS;
 }
 
 export const overlayAvailable =

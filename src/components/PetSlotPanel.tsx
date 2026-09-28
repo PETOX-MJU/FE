@@ -297,7 +297,7 @@ export function PetSlotPanel({
                     />
                   );
                 case 'empty':
-                  return <AddCell size={cellSize} onPress={startAdd} />;
+                  return <EmptyCell size={cellSize} onPress={startAdd} />;
                 case 'locked':
                   return (
                     <SlotCell
@@ -466,6 +466,37 @@ function SlotCell({
   );
 }
 
+/**
+ * 잠금은 풀렸지만 아직 펫이 없는 칸 — 밝은 점선 칸에 + 와 안내 문구.
+ * 카메라 칸(맨 끝 추가 칸)과 헷갈리지 않게 모양을 다르게 둔다.
+ */
+function EmptyCell({ size, onPress }: { size: number; onPress: () => void }) {
+  const plus = Math.round(size * 0.22);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="빈 펫 슬롯, 새 친구 데려오기"
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.cell,
+        styles.cellOpen,
+        { width: size, height: size },
+        pressed && styles.pressed,
+      ]}
+    >
+      <Svg width={plus} height={plus} viewBox="0 0 24 24">
+        <Path
+          d="M12 3v18M3 12h18"
+          stroke="#9CC79A"
+          strokeWidth={3}
+          strokeLinecap="round"
+        />
+      </Svg>
+      <Text style={styles.openText}>새 친구</Text>
+    </Pressable>
+  );
+}
+
 /** 카메라 아이콘 폭이 칸에서 차지하는 비율 */
 const CAMERA_RATIO = 0.42;
 
@@ -624,6 +655,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderWidth: 2,
     borderColor: '#EEEEEE',
+  },
+  // 열린 빈 칸 — 점선 테두리
+  cellOpen: {
+    backgroundColor: '#F6FAF5',
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: '#B9D8B7',
+    gap: 6,
+  },
+  openText: {
+    fontFamily: fonts.kkukkukk,
+    fontSize: 13,
+    color: '#7FAF7C',
+    includeFontPadding: false,
   },
   cellEmpty: {
     backgroundColor: '#ECECEC',

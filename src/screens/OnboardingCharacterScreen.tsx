@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BoneButton } from '@/components/BoneButton';
 import { OnboardingHeader } from '@/components/OnboardingHeader';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { PetSprite } from '@/components/PetSprite';
 import {
   PETS,
@@ -13,7 +14,10 @@ import {
 import { petoxColors, petoxLayout, petoxTextBase } from '@/theme/petox';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'OnboardingCharacter'>;
+type Props = NativeStackScreenProps<
+  RootStackParamList,
+  'OnboardingCharacter' | 'AddPetCharacter'
+>;
 
 // 시안 기준 크기. 화면이 작으면 남는 높이에 맞춰 같은 비율로 줄인다
 // (고정 200 이면 작은 화면에서 아래 버튼이 화면 밖으로 밀려났다).
@@ -33,7 +37,9 @@ const TOP_ROW_LIFT_RATIO = 0.08; // 윗줄을 스프라이트 × 0.08 만큼 위
 const ROW_GAP = 8;
 
 export function OnboardingCharacterScreen({ navigation, route }: Props) {
-  const { goalMinutes, blockSlots, addPet } = route.params;
+  const { goalMinutes, blockSlots } = route.params;
+  // 홈 펫 슬롯에서 온 "펫 추가" 화면인지
+  const addPet = route.name === 'AddPetCharacter';
   const [pet, setPet] = useState<PetId>('golden');
   const [gridH, setGridH] = useState(0);
 
@@ -47,11 +53,19 @@ export function OnboardingCharacterScreen({ navigation, route }: Props) {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.body}>
-        <OnboardingHeader
-          step={4}
-          total={5}
-          onBack={() => navigation.goBack()}
-        />
+        {addPet ? (
+          <ScreenHeader
+            title={S.addPetHeader}
+            onBack={() => navigation.goBack()}
+            style={styles.addHeader}
+          />
+        ) : (
+          <OnboardingHeader
+            step={4}
+            total={5}
+            onBack={() => navigation.goBack()}
+          />
+        )}
 
         <Text style={styles.title}>
           {addPet ? S.addPetCharacterTitle : S.characterTitle}
@@ -124,12 +138,10 @@ export function OnboardingCharacterScreen({ navigation, route }: Props) {
         <BoneButton
           text={S.next}
           onPress={() =>
-            navigation.navigate('OnboardingConfirm', {
-              goalMinutes,
-              blockSlots,
-              pet,
-              addPet,
-            })
+            navigation.navigate(
+              addPet ? 'AddPetConfirm' : 'OnboardingConfirm',
+              { goalMinutes, blockSlots, pet },
+            )
           }
         />
         <BoneButton
@@ -138,11 +150,10 @@ export function OnboardingCharacterScreen({ navigation, route }: Props) {
           variant="outline"
           style={styles.photoBtn}
           onPress={() =>
-            navigation.navigate('OnboardingPetPhoto', {
-              goalMinutes,
-              blockSlots,
-              addPet,
-            })
+            navigation.navigate(
+              addPet ? 'AddPetPhoto' : 'OnboardingPetPhoto',
+              { goalMinutes, blockSlots },
+            )
           }
         />
       </View>
@@ -151,6 +162,8 @@ export function OnboardingCharacterScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
+  // 펫 추가 화면 — 부모가 이미 좌우 여백을 준다
+  addHeader: { paddingHorizontal: 0 },
   safe: { flex: 1, backgroundColor: petoxColors.white },
   body: {
     flex: 1,

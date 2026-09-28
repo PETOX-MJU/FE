@@ -40,7 +40,8 @@ export const onboardingStrings = {
 
   // 3단계: 캐릭터 선택
   characterTitle: '캐릭터를 설정해 주세요',
-  /** 홈 펫 슬롯에서 새 펫을 한 마리 더 등록할 때 */
+  /** 홈 펫 슬롯에서 새 펫을 한 마리 더 등록할 때 (펫 추가 화면) */
+  addPetHeader: '펫 추가',
   addPetCharacterTitle: '새 친구를 골라 주세요',
   characterSubtitle: '기본 캐릭터를 고르거나, 내 반려동물 사진으로\n만들 수 있어요',
   characterFromPhoto: '내 반려동물 사진으로 만들기',

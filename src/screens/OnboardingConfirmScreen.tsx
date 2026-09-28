@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BoneButton } from '@/components/BoneButton';
 import { OnboardingHeader } from '@/components/OnboardingHeader';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { PetoxTextField } from '@/components/PetoxTextField';
 import { PetSprite } from '@/components/PetSprite';
 import { onboardingStrings as S } from '@/constants/onboardingStrings';
@@ -25,14 +26,19 @@ import { addPet as addLocalPet, savePetProfile } from '@/storage/petProfile';
 import { petoxColors, petoxLayout, petoxTextBase } from '@/theme/petox';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'OnboardingConfirm'>;
+type Props = NativeStackScreenProps<
+  RootStackParamList,
+  'OnboardingConfirm' | 'AddPetConfirm'
+>;
 
 const SPRITE = 220;
 
 const SPOTLIGHT_W = 240;
 
 export function OnboardingConfirmScreen({ navigation, route }: Props) {
-  const { goalMinutes, blockSlots, pet, generatedUri, addPet } = route.params;
+  const { goalMinutes, blockSlots, pet, generatedUri } = route.params;
+  // 홈 펫 슬롯에서 온 "펫 추가" — 기존 펫은 두고 한 마리 더 만든다
+  const addPet = route.name === 'AddPetConfirm';
   const [name, setName] = useState('');
 
   const [error, setError] = useState<string | null>(null);
@@ -110,11 +116,19 @@ export function OnboardingConfirmScreen({ navigation, route }: Props) {
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
-          <OnboardingHeader
-            step={5}
-            total={5}
-            onBack={() => navigation.goBack()}
-          />
+          {addPet ? (
+            <ScreenHeader
+              title={S.addPetHeader}
+              onBack={() => navigation.goBack()}
+              style={styles.addHeader}
+            />
+          ) : (
+            <OnboardingHeader
+              step={5}
+              total={5}
+              onBack={() => navigation.goBack()}
+            />
+          )}
 
           <Text style={styles.title}>
             {addPet ? S.addPetConfirmTitle : S.confirmTitle}
@@ -163,6 +177,8 @@ export function OnboardingConfirmScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
+  // 펫 추가 화면 — 부모가 이미 좌우 여백을 준다
+  addHeader: { paddingHorizontal: 0 },
   safe: { flex: 1, backgroundColor: petoxColors.white },
   flex: { flex: 1 },
   content: {

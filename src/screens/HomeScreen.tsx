@@ -262,13 +262,12 @@ export function HomeScreen({ navigation }: Props) {
                 })
                 .catch(() => {});
             }}
-            // 빈 슬롯 → 온보딩 캐릭터 화면을 "추가 모드"로 (기존 펫은 덮어쓰지 않는다)
+            // 빈 슬롯 → 펫 추가 화면 (기존 펫은 덮어쓰지 않는다)
             onAddPet={() => {
               setOpenPanel(null);
-              navigation.navigate('OnboardingCharacter', {
+              navigation.navigate('AddPetCharacter', {
                 goalMinutes: petGoal?.goalMinutes ?? 120,
                 blockSlots: petGoal?.blockSlots ?? [],
-                addPet: true,
               });
             }}
             style={[

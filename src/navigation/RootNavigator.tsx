@@ -56,22 +56,26 @@ export type RootStackParamList = {
     edit?: string;
   };
   OnboardingApps: { goalMinutes: number; blockSlots: string[] };
-  /**
-   * addPet: 홈 펫 슬롯에서 두 번째 펫부터 새로 등록하는 흐름 (기존 펫은 그대로 두고 한 마리 더).
-   * 캐릭터 → (사진 → 변환) → 확정 화면을 온보딩과 같이 쓰고, 확정할 때만 다르게 저장한다.
-   */
-  OnboardingCharacter: { goalMinutes: number; blockSlots: string[]; addPet?: boolean };
-  OnboardingPetPhoto: { goalMinutes: number; blockSlots: string[]; addPet?: boolean };
-  OnboardingConvert: { goalMinutes: number; blockSlots: string[]; addPet?: boolean };
+  OnboardingCharacter: { goalMinutes: number; blockSlots: string[] };
+  OnboardingPetPhoto: { goalMinutes: number; blockSlots: string[] };
+  OnboardingConvert: { goalMinutes: number; blockSlots: string[] };
   OnboardingConfirm: {
     goalMinutes: number;
     blockSlots: string[];
-    addPet?: boolean;
     /** 기본 캐릭터를 골라서 온 경우 */
     pet?: PetId;
     /** 사진 변환으로 만들어진 캐릭터 이미지 경로 */
     generatedUri?: string;
   };
+  /**
+   * 펫 추가 — 홈 펫 슬롯에서 두 번째 펫부터 새로 등록하는 별도 화면들 (온보딩과 따로 뜬다).
+   * 그리는 컴포넌트는 온보딩과 같이 쓰되, 헤더는 단계 표시 없이 "펫 추가" 제목만 두고
+   * 확정할 때 기존 펫을 덮어쓰지 않고 한 마리 더 만든다.
+   */
+  AddPetCharacter: RootStackParamList['OnboardingCharacter'];
+  AddPetPhoto: RootStackParamList['OnboardingPetPhoto'];
+  AddPetConvert: RootStackParamList['OnboardingConvert'];
+  AddPetConfirm: RootStackParamList['OnboardingConfirm'];
   Home: undefined;
   ScreentimeDashboard: undefined;
   MyPage: undefined;
@@ -193,6 +197,19 @@ export function RootNavigator() {
             options={authOptions}
           />
           <Stack.Screen name="Home" component={HomeScreen} />
+          <Stack.Screen
+            name="AddPetCharacter"
+            component={OnboardingCharacterScreen}
+          />
+          <Stack.Screen name="AddPetPhoto" component={OnboardingPetPhotoScreen} />
+          <Stack.Screen
+            name="AddPetConvert"
+            component={OnboardingConvertScreen}
+          />
+          <Stack.Screen
+            name="AddPetConfirm"
+            component={OnboardingConfirmScreen}
+          />
           <Stack.Screen
             name="ScreentimeDashboard"
             component={ScreentimeDashboardScreen}

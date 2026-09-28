@@ -4,18 +4,23 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BoneProgress } from '@/components/BoneProgress';
 import { OnboardingHeader } from '@/components/OnboardingHeader';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { WalkingDog } from '@/components/WalkingDog';
 import { onboardingStrings as S } from '@/constants/onboardingStrings';
 import { petoxColors, petoxLayout, petoxTextBase } from '@/theme/petox';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'OnboardingConvert'>;
+type Props = NativeStackScreenProps<
+  RootStackParamList,
+  'OnboardingConvert' | 'AddPetConvert'
+>;
 
 // 실제 변환 로직이 붙기 전까지 쓰는 임시 진행 속도.
 const TICK_MS = 60;
 
 export function OnboardingConvertScreen({ navigation, route }: Props) {
-  const { goalMinutes, blockSlots, addPet } = route.params;
+  const { goalMinutes, blockSlots } = route.params;
+  const addPet = route.name === 'AddPetConvert';
   const [percent, setPercent] = useState(0);
   const done = useRef(false);
 
@@ -35,13 +40,28 @@ export function OnboardingConvertScreen({ navigation, route }: Props) {
     done.current = true;
     // 완성된 캐릭터를 들고 확정 화면으로. 뒤로 눌러 변환 화면에 돌아오지 않도록 replace.
     // TODO: 변환 결과 이미지 경로를 generatedUri 로 넘기면 확정 화면에 표시됩니다.
-    navigation.replace('OnboardingConfirm', { goalMinutes, blockSlots, addPet });
+    navigation.replace(addPet ? 'AddPetConfirm' : 'OnboardingConfirm', {
+      goalMinutes,
+      blockSlots,
+    });
   }, [percent, navigation, goalMinutes, blockSlots, addPet]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.body}>
-        <OnboardingHeader step={4} total={5} onBack={() => navigation.goBack()} />
+        {addPet ? (
+          <ScreenHeader
+            title={S.addPetHeader}
+            onBack={() => navigation.goBack()}
+            style={styles.addHeader}
+          />
+        ) : (
+          <OnboardingHeader
+            step={4}
+            total={5}
+            onBack={() => navigation.goBack()}
+          />
+        )}
 
         <Text style={styles.title}>{S.convertTitle}</Text>
 
@@ -67,6 +87,8 @@ export function OnboardingConvertScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
+  // 펫 추가 화면 — 부모가 이미 좌우 여백을 준다
+  addHeader: { paddingHorizontal: 0 },
   safe: { flex: 1, backgroundColor: petoxColors.white },
   body: {
     flex: 1,

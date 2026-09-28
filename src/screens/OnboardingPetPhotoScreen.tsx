@@ -18,14 +18,19 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BoneButton } from '@/components/BoneButton';
 import { OnboardingHeader } from '@/components/OnboardingHeader';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { onboardingStrings as S } from '@/constants/onboardingStrings';
 import { petoxColors, petoxLayout, petoxTextBase } from '@/theme/petox';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'OnboardingPetPhoto'>;
+type Props = NativeStackScreenProps<
+  RootStackParamList,
+  'OnboardingPetPhoto' | 'AddPetPhoto'
+>;
 
 export function OnboardingPetPhotoScreen({ navigation, route }: Props) {
-  const { goalMinutes, blockSlots, addPet } = route.params;
+  const { goalMinutes, blockSlots } = route.params;
+  const addPet = route.name === 'AddPetPhoto';
   // 첨부된 사진의 로컬 경로. 사진 선택 기능을 붙이면 여기에 채웁니다.
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const hasPhoto = photoUri !== null;
@@ -81,7 +86,19 @@ export function OnboardingPetPhotoScreen({ navigation, route }: Props) {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.body}>
-        <OnboardingHeader step={4} total={5} onBack={() => navigation.goBack()} />
+        {addPet ? (
+          <ScreenHeader
+            title={S.addPetHeader}
+            onBack={() => navigation.goBack()}
+            style={styles.addHeader}
+          />
+        ) : (
+          <OnboardingHeader
+            step={4}
+            total={5}
+            onBack={() => navigation.goBack()}
+          />
+        )}
 
         <Text style={styles.title}>{S.petPhotoTitle}</Text>
 
@@ -131,11 +148,10 @@ export function OnboardingPetPhotoScreen({ navigation, route }: Props) {
           variant={hasPhoto ? 'filled' : 'outline'}
           onPress={() => {
             if (!hasPhoto) return;
-            navigation.navigate('OnboardingConvert', {
-              goalMinutes,
-              blockSlots,
-              addPet,
-            });
+            navigation.navigate(
+              addPet ? 'AddPetConvert' : 'OnboardingConvert',
+              { goalMinutes, blockSlots },
+            );
           }}
         />
       </View>
@@ -144,6 +160,8 @@ export function OnboardingPetPhotoScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
+  // 펫 추가 화면 — 부모가 이미 좌우 여백을 준다
+  addHeader: { paddingHorizontal: 0 },
   safe: { flex: 1, backgroundColor: petoxColors.white },
   body: {
     flex: 1,

@@ -5,7 +5,7 @@ import {
   Platform,
   type ImageSourcePropType,
 } from 'react-native';
-import { homePetImages, petImages } from '@/assets/images';
+import { homePetImages } from '@/assets/images';
 import { petWalk } from '@/assets/images/petWalk';
 import { screentime } from '@/features/screentime/onDevice';
 import { loadPetProfile } from '@/storage/petProfile';
@@ -102,8 +102,9 @@ async function currentWalk(): Promise<{
 }> {
   const none = { frames: [], widthRatio: 1 };
   const profile = await loadPetProfile().catch(() => null);
-  if (!profile?.pet || profile.generatedUri) return none;
-  const walk = petWalk[profile.pet];
+  if (profile?.generatedUri) return none;
+  // 종류를 모르면 기본 닥스훈트 (홈과 같게)
+  const walk = petWalk[profile?.pet ?? 'dachshund'];
   if (!walk) return none;
   const frames = walk.frames
     .map(src => Image.resolveAssetSource(src)?.uri)
@@ -116,9 +117,8 @@ async function currentWalk(): Promise<{
 async function currentPetUri(): Promise<string | undefined> {
   const profile = await loadPetProfile().catch(() => null);
   if (profile?.generatedUri) return profile.generatedUri;
-  const source: ImageSourcePropType = profile?.pet
-    ? homePetImages[profile.pet]
-    : petImages.rottweiler;
+  const source: ImageSourcePropType =
+    homePetImages[profile?.pet ?? 'dachshund'];
   return Image.resolveAssetSource(source)?.uri;
 }
 

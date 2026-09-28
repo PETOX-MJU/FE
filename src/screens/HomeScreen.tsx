@@ -31,9 +31,8 @@ import {
   HOME_BG_ASPECT,
   homeImages,
   homePetImages,
-  petImages,
-  type PetId,
 } from '@/assets/images';
+import type { PetId as BreedId } from '@/constants/onboardingStrings';
 import { CoinBadge } from '@/components/CoinBadge';
 import { GlassButton } from '@/components/GlassButton';
 import { BackdropContext, type Backdrop } from '@/components/GlassSurface';
@@ -59,8 +58,8 @@ const TOP_BAR_H = 50; // 상단 pill 높이
 const BOTTOM_BAR_BOTTOM = 50; // 홈 버튼 아래 여백 (917 - 839)
 const HOME_BTN_SIZE = 96; // 가운데 홈 버튼 지름 — 펫 슬롯 패널을 이 위에 띄운다
 
-// 온보딩에서 아무것도 못 불러왔을 때 보여줄 펫
-const DEFAULT_PET: PetId = 'rottweiler';
+// 온보딩에서 아무것도 못 불러왔을 때 보여줄 펫 (원본 시안 닥스훈트. 옛 pet_rottweiler.png 는 도트 2칸이 틀려서 안 쓴다)
+const DEFAULT_PET: BreedId = 'dachshund';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
@@ -77,10 +76,12 @@ export function HomeScreen({ navigation }: Props) {
 
   // 온보딩에서 고른 내 펫. 사진으로 만든 캐릭터(generatedUri)가 있으면 그걸, 아니면 고른 기본 캐릭터.
   const [petSource, setPetSource] = useState<ImageSourcePropType>(
-    petImages[DEFAULT_PET],
+    homePetImages[DEFAULT_PET],
   );
   // 걷기 그림이 있는 기본 캐릭터면 홈에서 좌우로 돌아다닌다 (코기·사진 캐릭터는 제자리)
-  const [petWalk, setPetWalk] = useState<PetWalk | undefined>();
+  const [petWalk, setPetWalk] = useState<PetWalk | undefined>(
+    petWalks[DEFAULT_PET],
+  );
   // 펫 슬롯 — 키우는 펫 목록과 지금 홈에 나와 있는 펫
   const [pets, setPets] = useState<LocalPet[]>([]);
   const [activeId, setActiveId] = useState<string | undefined>();
@@ -131,9 +132,11 @@ export function HomeScreen({ navigation }: Props) {
         if (profile?.generatedUri) {
           setPetSource({ uri: profile.generatedUri });
           setPetWalk(undefined);
-        } else if (profile?.pet) {
-          setPetSource(homePetImages[profile.pet]);
-          setPetWalk(petWalks[profile.pet]);
+        } else {
+          // 종류를 모르면(견종 저장 전에 만든 펫 등) 기본 닥스훈트 — 마이페이지·오버레이와 같게
+          const breed = profile?.pet ?? DEFAULT_PET;
+          setPetSource(homePetImages[breed]);
+          setPetWalk(petWalks[breed]);
         }
       })
       .catch(() => {});

@@ -1,4 +1,5 @@
 import { AuthError } from '@supabase/supabase-js';
+import { Linking } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/api/supabase';
 import { stopOverlay } from '@/features/overlay/overlay';
@@ -155,4 +156,45 @@ export async function deleteAccount(): Promise<void> {
   stopOverlay();
   // 서버의 사용자는 이미 지워졌으니 기기 세션만 지운다
   await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+}
+
+// ---- 카카오 로그인 (Supabase OAuth, PKCE) ----
+// 1) Supabase 에서 카카오 로그인 주소를 받아 폰 브라우저로 연다
+// 2) 로그인이 끝나면 petox://auth-callback?code=... 로 앱이 다시 열린다
+// 3) handleAuthCallbackUrl 이 code 를 세션으로 바꾼다 (RootNavigator 가 주소를 넘겨줌)
+// 카카오 개발자 콘솔 + Supabase Providers > Kakao + Redirect URLs 설정이 돼 있어야 한다.
+
+export async function signInWithKakao(): Promise<void> {
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'kakao',
+    options: { redirectTo: EMAIL_REDIRECT_URL, skipBrowserRedirect: true },
+  });
+  if (error) throw error;
+  if (!data.url) throw new Error('no oauth url');
+  await Linking.openURL(data.url);
+}
+
+export type AuthCallbackResult =
+  | { status: 'signedIn' }
+  | { status: 'error'; message: string }
+  | { status: 'ignored' };
+
+/**
+ * 앱으로 돌아온 주소 처리. 카카오 로그인(?code=)이면 세션을 만든다.
+ * 이메일 인증 링크로 돌아온 경우엔 이 기기에 PKCE 검증값이 없어 교환이 실패할 수 있는데,
+ * 인증 자체는 이미 끝났고 인증 대기 화면이 비밀번호로 로그인하므로 조용히 넘긴다.
+ */
+export async function handleAuthCallbackUrl(
+  url: string,
+): Promise<AuthCallbackResult> {
+  if (!url.startsWith(EMAIL_REDIRECT_URL)) return { status: 'ignored' };
+  const query = url.split(/[?#]/).slice(1).join('&');
+  const params = new URLSearchParams(query);
+  const errorDesc = params.get('error_description') ?? params.get('error');
+  if (errorDesc) return { status: 'error', message: errorDesc };
+  const code = params.get('code');
+  if (!code) return { status: 'ignored' };
+  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  if (error) return { status: 'ignored' };
+  return { status: 'signedIn' };
 }

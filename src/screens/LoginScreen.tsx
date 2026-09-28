@@ -4,6 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { KakaoButton, PetoxBlackButton } from '@/components/PetoxButtons';
 import { AuthHeader } from '@/components/AuthHeader';
+import { showDialog } from '@/components/AppDialog';
+import { signInWithKakao } from '@/api/auth';
 import { petoxStrings } from '@/constants/petoxStrings';
 import { petoxColors, petoxLayout } from '@/theme/petox';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
@@ -22,8 +24,16 @@ function nextTagline() {
 export function LoginScreen({ navigation }: Props) {
   const [tagline] = useState(nextTagline);
 
-  const onKakaoLogin = () => {
-    // TODO: 백엔드 연동 지점 — 카카오 SDK 연동 예정.
+  // 카카오 로그인 페이지를 브라우저로 연다. 로그인 후 앱으로 돌아오면 RootNavigator 가 이어서 처리한다.
+  const onKakaoLogin = async () => {
+    try {
+      await signInWithKakao();
+    } catch (e) {
+      showDialog({
+        title: '카카오 로그인을 시작하지 못했어요',
+        message: e instanceof Error ? e.message : '잠시 후 다시 시도해 주세요.',
+      });
+    }
   };
 
   return (

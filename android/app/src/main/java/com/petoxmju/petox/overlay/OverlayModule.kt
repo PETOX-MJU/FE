@@ -45,6 +45,19 @@ class OverlayModule(private val context: ReactApplicationContext) : ReactContext
                     OverlayService.EXTRA_GROW_EVERY,
                     if (config.hasKey("growEverySec")) config.getInt("growEverySec") else 30,
                 )
+                // 등장할 때 걸어 들어오는 프레임들 (왼쪽을 보고 걷는 그림). 없으면 걷기 없이 나타난다
+                if (config.hasKey("walkFrames")) {
+                    val frames = config.getArray("walkFrames")
+                    if (frames != null) {
+                        putExtra(
+                            OverlayService.EXTRA_WALK_FRAMES,
+                            Array(frames.size()) { i -> frames.getString(i) ?: "" },
+                        )
+                    }
+                }
+                if (config.hasKey("walkWidthRatio")) {
+                    putExtra(OverlayService.EXTRA_WALK_RATIO, config.getDouble("walkWidthRatio").toFloat())
+                }
                 if (config.hasKey("targets")) {
                     val arr = config.getArray("targets")
                     if (arr != null) {

@@ -1,5 +1,8 @@
 package com.petoxmju.petox.overlay
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
+import android.animation.ValueAnimator
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -24,6 +27,7 @@ import android.provider.Settings
 import android.util.Log
 import android.view.Gravity
 import android.view.WindowManager
+import android.view.animation.LinearInterpolator
 import android.widget.ImageView
 import com.petoxmju.petox.MainActivity
 import com.petoxmju.petox.R
@@ -34,7 +38,8 @@ import kotlin.concurrent.thread
  * 숏폼 앱을 보고 있으면 내 펫을 다른 앱 위에 띄우는 포그라운드 서비스.
  *
  * 1초마다 UsageStatsManager 로 "지금 앞에 떠 있는 앱"을 확인한다.
- * - 대상 앱(유튜브·인스타·틱톡)을 appearAfterSec 초 이상 연속으로 보면 펫이 화면 오른쪽 아래에 나타난다.
+ * - 대상 앱(유튜브·인스타·틱톡)을 appearAfterSec 초 이상 연속으로 보면 펫이 화면 오른쪽 밖에서
+ *   걸어 들어와(걷기 프레임이 있을 때) 오른쪽 아래에 앉는다.
  * - 계속 보면 growEverySec 초마다 펫이 한 단계씩 커지고(최대 4단계) 진동한다.
  * - 대상 앱을 벗어나면 펫이 사라지고 시간도 처음부터 다시 센다.
  * - 펫을 누르면 펫톡스 앱이 열린다.
@@ -57,6 +62,12 @@ class OverlayService : Service() {
         const val EXTRA_APPEAR_AFTER = "appearAfterSec"
         const val EXTRA_GROW_EVERY = "growEverySec"
         const val EXTRA_TARGETS = "targets"
+        const val EXTRA_WALK_FRAMES = "walkFrames"
+        const val EXTRA_WALK_RATIO = "walkWidthRatio"
+
+        /** 걷기 한 프레임 시간, 화면 밖 → 자리까지 걷는 시간 */
+        private const val WALK_FRAME_MS = 150L
+        private const val WALK_IN_MS = 2200L
 
         @Volatile
         var isRunning = false
@@ -76,6 +87,26 @@ class OverlayService : Service() {
     private var petBitmap: Bitmap? = null
 
     private var petUri: String? = null
+    private var walkUris: List<String> = emptyList()
+    private var walkBitmaps: List<Bitmap> = emptyList()
+    /** 앉은 펫 너비 대비 걷는 펫 너비 — 도트 한 칸 크기를 같게 (JS 가 견종별로 계산) */
+    private var walkWidthRatio = 1.25f
+
+    // 걸어 들어오는 중인 창과 애니메이션
+    private var walkView: ImageView? = null
+    private var walkAnimator: ValueAnimator? = null
+    private var walkFrame = 0
+    private val walkFrameTick = object : Runnable {
+        override fun run() {
+            val view = walkView ?: return
+            val frames = walkScaled
+            if (frames.isEmpty()) return
+            walkFrame = (walkFrame + 1) % frames.size
+            view.setImageBitmap(frames[walkFrame])
+            handler.postDelayed(this, WALK_FRAME_MS)
+        }
+    }
+    private var walkScaled: List<Bitmap> = emptyList()
     private var appearAfterSec = 60
     private var growEverySec = 30
     private var targets: Set<String> = DEFAULT_TARGETS.toSet()
@@ -131,7 +162,10 @@ class OverlayService : Service() {
         if (intent != null && intent.hasExtra(EXTRA_APPEAR_AFTER)) {
             // 앱에서 켤 때 넘어온 값을 저장해 두고, 시스템이 서비스를 다시 살릴 때(START_STICKY) 쓴다.
             val list = intent.getStringArrayExtra(EXTRA_TARGETS)
+            val walk = intent.getStringArrayExtra(EXTRA_WALK_FRAMES)
             prefs.edit()
+                .putString(EXTRA_WALK_FRAMES, walk?.joinToString("\n") ?: "")
+                .putFloat(EXTRA_WALK_RATIO, intent.getFloatExtra(EXTRA_WALK_RATIO, 1.25f))
                 .putString(EXTRA_PET_URI, intent.getStringExtra(EXTRA_PET_URI))
                 .putInt(EXTRA_APPEAR_AFTER, intent.getIntExtra(EXTRA_APPEAR_AFTER, 60))
                 .putInt(EXTRA_GROW_EVERY, intent.getIntExtra(EXTRA_GROW_EVERY, 30))
@@ -141,6 +175,9 @@ class OverlayService : Service() {
         petUri = prefs.getString(EXTRA_PET_URI, null)
         appearAfterSec = prefs.getInt(EXTRA_APPEAR_AFTER, 60).coerceAtLeast(1)
         growEverySec = prefs.getInt(EXTRA_GROW_EVERY, 30).coerceAtLeast(1)
+        walkWidthRatio = prefs.getFloat(EXTRA_WALK_RATIO, 1.25f).coerceIn(0.5f, 3f)
+        walkUris = prefs.getString(EXTRA_WALK_FRAMES, null)
+            ?.split("\n")?.filter { it.isNotBlank() } ?: emptyList()
         targets = prefs.getString(EXTRA_TARGETS, null)
             ?.split(",")?.filter { it.isNotBlank() }?.toSet()
             ?: DEFAULT_TARGETS.toSet()
@@ -201,7 +238,12 @@ class OverlayService : Service() {
         }
 
         val stage = ((watchedSec - appearAfterSec) / growEverySec).coerceAtMost(STAGE_SCALES.size - 1)
+        if (walkView != null) return // 걸어 들어오는 중 — 끝나면 앉은 모습으로 바뀐다
         if (stage != shownStage) {
+            if (shownStage == -1 && walkBitmaps.isNotEmpty()) {
+                startWalkIn()
+                return
+            }
             showPet(stage)
             if (stage > 0) vibrate(stage)
         }
@@ -281,7 +323,94 @@ class OverlayService : Service() {
         }
     }
 
+    /** 화면 오른쪽 밖에서 왼쪽으로 걸어 들어와 앉을 자리에서 멈춘 뒤, 앉은 펫으로 바꾼다. */
+    private fun startWalkIn() {
+        val density = resources.displayMetrics.density
+        // 앉은 펫(1단계) 너비 × 비율 — 걷다가 앉아도 도트 크기가 그대로다
+        val widthPx = (BASE_SIZE_DP * STAGE_SCALES[0] * walkWidthRatio * density).toInt()
+        walkScaled = walkBitmaps.map {
+            Bitmap.createScaledBitmap(it, widthPx, (widthPx * it.height.toFloat() / it.width).toInt(), false)
+        }
+        val view = ImageView(this).apply {
+            setImageBitmap(walkScaled[0])
+            setOnClickListener {
+                startActivity(Intent(this@OverlayService, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            }
+        }
+        val margin = (24 * density).toInt()
+        val params = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            overlayType(),
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS, // 화면 밖에서 시작하려면 필요
+            PixelFormat.TRANSLUCENT,
+        ).apply {
+            gravity = Gravity.BOTTOM or Gravity.END
+            x = -widthPx // 오른쪽 가장자리 바깥
+            y = margin * 5
+        }
+        try {
+            windowManager.addView(view, params)
+        } catch (e: Exception) {
+            Log.w(TAG, "walk add failed", e)
+            showPet(0)
+            return
+        }
+        walkView = view
+        walkFrame = 0
+        handler.postDelayed(walkFrameTick, WALK_FRAME_MS)
+        walkAnimator = ValueAnimator.ofInt(-widthPx, margin).apply {
+            duration = WALK_IN_MS
+            interpolator = LinearInterpolator()
+            addUpdateListener {
+                params.x = it.animatedValue as Int
+                try {
+                    windowManager.updateViewLayout(view, params)
+                } catch (e: Exception) {
+                    // 창이 이미 사라졌으면(앱을 벗어남) 무시
+                }
+            }
+            addListener(object : AnimatorListenerAdapter() {
+                private var cancelled = false
+                override fun onAnimationCancel(animation: Animator) {
+                    cancelled = true
+                }
+                override fun onAnimationEnd(animation: Animator) {
+                    if (cancelled) return
+                    stopWalk()
+                    showPet(0) // 도착 — 앉은 모습
+                }
+            })
+            start()
+        }
+        Log.i(TAG, "pet walking in (${walkBitmaps.size} frames)")
+    }
+
+    private fun stopWalk() {
+        walkAnimator?.cancel()
+        walkAnimator = null
+        handler.removeCallbacks(walkFrameTick)
+        val view = walkView ?: return
+        try {
+            windowManager.removeView(view)
+        } catch (e: Exception) {
+            Log.w(TAG, "walk remove failed", e)
+        }
+        walkView = null
+    }
+
+    private fun overlayType(): Int =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        } else {
+            @Suppress("DEPRECATION")
+            WindowManager.LayoutParams.TYPE_PHONE
+        }
+
     private fun hidePet() {
+        stopWalk()
         val view = petView ?: return
         try {
             windowManager.removeView(view)
@@ -312,24 +441,15 @@ class OverlayService : Service() {
      * - 사진으로 만든 캐릭터: file:// 또는 content://
      */
     private fun loadPetBitmap() {
-        val uri = petUri ?: return
+        val uri = petUri
+        val walk = walkUris
         thread(name = "petox-overlay-pet") {
-            val bmp = try {
-                when {
-                    uri.startsWith("http") -> URL(uri).openStream().use { BitmapFactory.decodeStream(it) }
-                    uri.startsWith("file:") || uri.startsWith("content:") ->
-                        contentResolver.openInputStream(Uri.parse(uri))?.use { BitmapFactory.decodeStream(it) }
-                    else -> {
-                        val id = resources.getIdentifier(uri, "drawable", packageName)
-                        if (id != 0) BitmapFactory.decodeResource(resources, id) else null
-                    }
-                }
-            } catch (e: Exception) {
-                Log.w(TAG, "pet image load failed: $uri", e)
-                null
-            }
-            if (bmp != null) {
-                handler.post {
+            val bmp = uri?.let { decodeUri(it) }
+            val frames = walk.mapNotNull { decodeUri(it) }
+            handler.post {
+                // 프레임이 하나라도 빠지면 걷기는 건너뛴다 (뚝뚝 끊겨 보이지 않게)
+                walkBitmaps = if (frames.size == walk.size) frames else emptyList()
+                if (bmp != null) {
                     petBitmap = bmp
                     if (shownStage >= 0) {
                         val stage = shownStage
@@ -340,6 +460,27 @@ class OverlayService : Service() {
             }
         }
     }
+
+    private fun decodeUri(uri: String): Bitmap? =
+        try {
+            when {
+                uri.startsWith("http") -> URL(uri).openStream().use { BitmapFactory.decodeStream(it) }
+                uri.startsWith("file:") || uri.startsWith("content:") ->
+                    contentResolver.openInputStream(Uri.parse(uri))?.use { BitmapFactory.decodeStream(it) }
+                else -> {
+                    val id = resources.getIdentifier(uri, "drawable", packageName)
+                    // 배포 빌드의 drawable 은 밀도에 맞춰 부드럽게 확대되면 도트가 뭉개져서 원본 크기로 읽는다
+                    if (id != 0) {
+                        BitmapFactory.decodeResource(resources, id, BitmapFactory.Options().apply { inScaled = false })
+                    } else {
+                        null
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "image load failed: $uri", e)
+            null
+        }
 
     private fun fallbackBitmap(): Bitmap =
         BitmapFactory.decodeResource(resources, R.mipmap.ic_launcher)

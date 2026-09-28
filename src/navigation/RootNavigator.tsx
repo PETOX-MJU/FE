@@ -1,6 +1,12 @@
-import React from 'react';
 import { AppDialogHost } from '@/components/AppDialog';
-import { NavigationContainer } from '@react-navigation/native';
+import React, { useEffect } from 'react';
+import { Linking } from 'react-native';
+import {
+  NavigationContainer,
+  createNavigationContainerRef,
+} from '@react-navigation/native';
+import { handleAuthCallbackUrl, routeAfterLogin } from '@/api/auth';
+import { showDialog } from '@/components/AppDialog';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { HomeScreen } from '@/screens/HomeScreen';
 import { ScreentimeDashboardScreen } from '@/screens/ScreentimeDashboardScreen';
@@ -75,10 +81,38 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 // 인증 화면은 헤더 없는 전체 화면. Home 은 기존 설정 그대로 둡니다.
 const authOptions = { headerShown: false } as const;
 
+export const navigationRef = createNavigationContainerRef<RootStackParamList>();
+
+/** 카카오 로그인 등으로 앱에 돌아온 petox://auth-callback 주소를 처리해 온보딩/홈으로 보낸다 */
+function useAuthCallback() {
+  useEffect(() => {
+    const onUrl = async (url: string | null | undefined) => {
+      if (!url) return;
+      const r = await handleAuthCallbackUrl(url);
+      if (r.status === 'error') {
+        showDialog({ title: '로그인하지 못했어요', message: r.message });
+      } else if (r.status === 'signedIn') {
+        const next = await routeAfterLogin();
+        if (navigationRef.isReady()) {
+          navigationRef.reset({ index: 0, routes: [{ name: next }] });
+        }
+      }
+    };
+    Linking.getInitialURL()
+      .then(onUrl)
+      .catch(() => {});
+    const sub = Linking.addEventListener('url', e => {
+      onUrl(e.url).catch(() => {});
+    });
+    return () => sub.remove();
+  }, []);
+}
+
 export function RootNavigator() {
+  useAuthCallback();
   return (
     <>
-      <NavigationContainer>
+      <NavigationContainer ref={navigationRef}>
         <Stack.Navigator
           initialRouteName="Splash"
           screenOptions={{ headerShown: false }}

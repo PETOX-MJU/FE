@@ -6,6 +6,7 @@ import {
   type ImageSourcePropType,
 } from 'react-native';
 import { homePetImages, petImages } from '@/assets/images';
+import { petWalk } from '@/assets/images/petWalk';
 import { screentime } from '@/features/screentime/onDevice';
 import { loadPetProfile } from '@/storage/petProfile';
 import { enabledAppPackages } from '@/api/settings';
@@ -21,6 +22,10 @@ type OverlayNative = {
     appearAfterSec: number;
     growEverySec: number;
     targets?: string[];
+    /** 등장할 때 걸어 들어오는 프레임 (왼쪽을 보고 걷는 그림) */
+    walkFrames?: string[];
+    /** 앉은 펫 너비 대비 걷는 펫 너비 (도트 크기를 맞추려고) */
+    walkWidthRatio?: number;
   }): Promise<boolean>;
   stop(): void;
   isRunning(): Promise<boolean>;
@@ -89,6 +94,25 @@ export async function requestNotificationPermission(): Promise<boolean> {
 }
 
 /** 오버레이에 띄울 내 펫 이미지 주소 (개발: Metro URL / 배포: drawable 이름 / 사진: file://) */
+// 걸어 들어오는 프레임 (assets/images/petWalk.ts). 웰시코기·사진으로 만든 펫은 걷지 않고 바로 나타난다.
+/** 걷기 프레임 주소 + 앉은 그림 대비 걷는 그림 너비 비율 (도트 크기를 같게) */
+async function currentWalk(): Promise<{
+  frames: string[];
+  widthRatio: number;
+}> {
+  const none = { frames: [], widthRatio: 1 };
+  const profile = await loadPetProfile().catch(() => null);
+  if (!profile?.pet || profile.generatedUri) return none;
+  const walk = petWalk[profile.pet];
+  if (!walk) return none;
+  const frames = walk.frames
+    .map(src => Image.resolveAssetSource(src)?.uri)
+    .filter((u): u is string => !!u);
+  // 앉은 그림(240×350) 가로 전체에 해당하는 도트 칸 수 대비 걷는 그림 칸 수
+  const sitPxW = (walk.sitPxH * 240) / 350;
+  return { frames, widthRatio: walk.pxW / sitPxW };
+}
+
 async function currentPetUri(): Promise<string | undefined> {
   const profile = await loadPetProfile().catch(() => null);
   if (profile?.generatedUri) return profile.generatedUri;
@@ -117,6 +141,10 @@ export async function syncOverlay(): Promise<boolean> {
     petUri: await currentPetUri(),
     ...OVERLAY_TIMING,
     targets: await currentTargets(),
+    ...(await currentWalk().then(w => ({
+      walkFrames: w.frames,
+      walkWidthRatio: w.widthRatio,
+    }))),
   });
   return true;
 }

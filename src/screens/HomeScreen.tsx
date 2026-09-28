@@ -33,7 +33,8 @@ import { CoinBadge } from '@/components/CoinBadge';
 import { GlassButton } from '@/components/GlassButton';
 import { BackdropContext, type Backdrop } from '@/components/GlassSurface';
 import { HomeTopActions } from '@/components/HomeTopActions';
-import { PetCharacter } from '@/components/PetCharacter';
+import { PET_SPRITE_W, PetCharacter } from '@/components/PetCharacter';
+import { petWalk as petWalks, type PetWalk } from '@/assets/images/petWalk';
 import { ShopPanel } from '@/components/ShopPanel';
 import { useCoinBalance } from '@/hooks/useCoinBalance';
 import { useDailyCheckIn } from '@/hooks/useDailyCheckIn';
@@ -68,6 +69,8 @@ export function HomeScreen({ navigation }: Props) {
   const [petSource, setPetSource] = useState<ImageSourcePropType>(
     petImages[DEFAULT_PET],
   );
+  // 걷기 그림이 있는 기본 캐릭터면 홈에서 좌우로 돌아다닌다 (코기·사진 캐릭터는 제자리)
+  const [petWalk, setPetWalk] = useState<PetWalk | undefined>();
   // ---- 펫 오버레이 (필수 기능) ----
   // 홈에 올 때마다, 설정에서 돌아올 때마다 권한을 확인하고
   // 빠진 권한이 있으면 안내 팝업, 다 있으면 서비스를 (다시) 시작한다.
@@ -103,9 +106,13 @@ export function HomeScreen({ navigation }: Props) {
     useCallback(() => {
       loadPetProfile()
         .then(profile => {
-          if (profile?.generatedUri)
+          if (profile?.generatedUri) {
             setPetSource({ uri: profile.generatedUri });
-          else if (profile?.pet) setPetSource(homePetImages[profile.pet]);
+            setPetWalk(undefined);
+          } else if (profile?.pet) {
+            setPetSource(homePetImages[profile.pet]);
+            setPetWalk(petWalks[profile.pet]);
+          }
         })
         .catch(() => {});
     }, []),
@@ -151,6 +158,12 @@ export function HomeScreen({ navigation }: Props) {
           // 개발 모드에서 펫을 길게 누르면 출석 전 상태로 (말풍선 확인용)
           onLongPress={__DEV__ ? devResetCheckIn : undefined}
           style={[styles.pet, { left: PET_X * k, top: PET_Y * k }]}
+          walk={petWalk}
+          // 화면 양끝에서 16dp 안쪽까지만 걸어간다
+          roam={{
+            min: 16 - PET_X * k,
+            max: screenW - 16 - (PET_X + PET_SPRITE_W) * k,
+          }}
         />
 
         {shopOpen && (

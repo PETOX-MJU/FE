@@ -27,11 +27,7 @@ import {
   syncOverlay,
 } from '@/features/overlay/overlay';
 import { ConfirmModal } from '@/components/ConfirmModal';
-import {
-  HOME_BG_ASPECT,
-  homeImages,
-  homePetImages,
-} from '@/assets/images';
+import { HOME_BG_ASPECT, homeImages, homePetImages } from '@/assets/images';
 import type { PetId as BreedId } from '@/constants/onboardingStrings';
 import { CoinBadge } from '@/components/CoinBadge';
 import { GlassButton } from '@/components/GlassButton';
@@ -122,13 +118,13 @@ export function HomeScreen({ navigation }: Props) {
         setPets(profile ? petList(profile) : []);
         setActiveId(profile ? activePetId(profile) : undefined);
         setPetGoal(
-            profile
-              ? {
-                  goalMinutes: profile.goalMinutes,
-                  blockSlots: profile.blockSlots,
-                }
-              : null,
-          );
+          profile
+            ? {
+                goalMinutes: profile.goalMinutes,
+                blockSlots: profile.blockSlots,
+              }
+            : null,
+        );
         if (profile?.generatedUri) {
           setPetSource({ uri: profile.generatedUri });
           setPetWalk(undefined);
@@ -148,14 +144,17 @@ export function HomeScreen({ navigation }: Props) {
   const bgW = Math.max(screenW, screenH * HOME_BG_ASPECT);
   const bgH = bgW / HOME_BG_ASPECT;
   const k = bgH / DESIGN_H; // 피그마 배경 좌표 → 화면 좌표 배율
+  // 태블릿처럼 화면이 넓으면 배경이 화면보다 훨씬 길어진다. 위에 맞추면 하늘만 보이니
+  // 아래(땅·펫이 있는 쪽)에 맞춘다. 휴대폰은 거의 딱 맞아서 0 이다.
+  const bgTop = Math.min(0, screenH - bgH);
 
   // 적용 중인 테마가 있으면 산 단계의 그림, 없으면 기본 초원
   const scene = useHomeScene();
   const bgSource = scene ?? homeImages.background;
 
   const backdrop = useMemo<Backdrop>(
-    () => ({ source: bgSource, width: bgW, height: bgH }),
-    [bgSource, bgW, bgH],
+    () => ({ source: bgSource, width: bgW, height: bgH, top: bgTop }),
+    [bgSource, bgW, bgH, bgTop],
   );
 
   // 오늘 처음 쓰다듬으면 출석 + 코인 지급(서버 check_in, 코인 +5).
@@ -170,7 +169,7 @@ export function HomeScreen({ navigation }: Props) {
       <Image
         source={bgSource}
         resizeMode="cover"
-        style={[styles.background, { width: bgW, height: bgH }]}
+        style={[styles.background, { width: bgW, height: bgH, top: bgTop }]}
       />
 
       <BackdropContext.Provider value={backdrop}>
@@ -182,7 +181,7 @@ export function HomeScreen({ navigation }: Props) {
           onTap={handlePetTap}
           // 개발 모드에서 펫을 길게 누르면 출석 전 상태로 (말풍선 확인용)
           onLongPress={__DEV__ ? devResetCheckIn : undefined}
-          style={[styles.pet, { left: PET_X * k, top: PET_Y * k }]}
+          style={[styles.pet, { left: PET_X * k, top: PET_Y * k + bgTop }]}
           walk={petWalk}
           // 화면 양끝에서 16dp 안쪽까지만 걸어간다
           roam={{
@@ -237,7 +236,9 @@ export function HomeScreen({ navigation }: Props) {
             iconWidth={51}
             iconHeight={51}
             size={HOME_BTN_SIZE}
-            accessibilityLabel={openPanel === 'pets' ? '펫 슬롯 닫기' : '펫 슬롯'}
+            accessibilityLabel={
+              openPanel === 'pets' ? '펫 슬롯 닫기' : '펫 슬롯'
+            }
             onPress={() => togglePanel('pets')}
           />
           <GlassButton

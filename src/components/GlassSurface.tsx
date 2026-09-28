@@ -16,11 +16,13 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import { colors } from '@/theme/colors';
 
-// 유리 뒤에 비칠 배경. 화면(window) 기준 (0,0)에 그려진 배경 이미지와 그 크기.
+// 유리 뒤에 비칠 배경. 화면(window) 기준 (0, top)에 그려진 배경 이미지와 그 크기.
 export type Backdrop = {
   source: ImageSourcePropType;
   width: number;
   height: number;
+  /** 배경 윗변 위치 (태블릿처럼 배경이 화면보다 길어 아래에 맞췄을 때 음수) */
+  top?: number;
 };
 
 export const BackdropContext = createContext<Backdrop | null>(null);
@@ -69,7 +71,7 @@ export function GlassSurface({
               styles.backdrop,
               {
                 left: -origin.x,
-                top: -origin.y,
+                top: (backdrop.top ?? 0) - origin.y,
                 width: backdrop.width,
                 height: backdrop.height,
               },

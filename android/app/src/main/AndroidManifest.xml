@@ -25,6 +25,8 @@
     <!-- 앱을 닫아도 숏폼 감지를 이어가는 포그라운드 서비스 + 그 상태 알림 -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <!-- 숏폼 화면 판별: 유튜브·인스타·틱톡이 앞에 있을 때만 화면을 떠서 기기 안의 분류기로 본다 (저장·전송 안 함) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- 오래 보면 펫이 커지면서 진동 -->
     <uses-permission android:name="android.permission.VIBRATE" />
@@ -61,7 +63,7 @@
       <service
         android:name=".overlay.OverlayService"
         android:exported="false"
-        android:foregroundServiceType="specialUse">
+        android:foregroundServiceType="specialUse|mediaProjection">
         <property
           android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
           android:value="Shows the user's virtual pet on top of short-form video apps to encourage taking a break" />

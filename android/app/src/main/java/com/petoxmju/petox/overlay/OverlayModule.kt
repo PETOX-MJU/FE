@@ -1,10 +1,15 @@
 package com.petoxmju.petox.overlay
 
+import android.app.Activity
+import android.content.Context
 import android.content.Intent
+import android.media.projection.MediaProjectionConfig
+import android.media.projection.MediaProjectionManager
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import com.facebook.react.ReactPackage
+import com.facebook.react.bridge.BaseActivityEventListener
 import com.facebook.react.bridge.NativeModule
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
@@ -16,6 +21,66 @@ import com.facebook.react.uimanager.ViewManager
 /** JS ↔ 오버레이 서비스. JS 이름: NativeModules.PetoxOverlay */
 class OverlayModule(private val context: ReactApplicationContext) : ReactContextBaseJavaModule(context) {
     override fun getName() = "PetoxOverlay"
+
+    private companion object {
+        const val REQ_SCREEN_CAPTURE = 7202
+    }
+
+    // 화면 캡처 허용 결과 — 다음 start() 때 서비스로 넘기고 비운다 (한 번만 쓸 수 있다)
+    private var captureCode = 0
+    private var captureData: Intent? = null
+    private var capturePromise: Promise? = null
+
+    private val activityListener = object : BaseActivityEventListener() {
+        override fun onActivityResult(activity: Activity, requestCode: Int, resultCode: Int, data: Intent?) {
+            if (requestCode != REQ_SCREEN_CAPTURE) return
+            val promise = capturePromise ?: return
+            capturePromise = null
+            if (resultCode == Activity.RESULT_OK && data != null) {
+                captureCode = resultCode
+                captureData = data
+                promise.resolve(true)
+            } else {
+                promise.resolve(false)
+            }
+        }
+    }
+
+    init {
+        context.addActivityEventListener(activityListener)
+    }
+
+    /**
+     * 숏폼 화면 판별용 화면 캡처 허용 창을 띄운다. 허용하면 true — 다음 start() 에서 서비스가 캡처를 시작한다.
+     * Android 14+ 는 "화면 전체"만 고를 수 있게 한다 (앱 하나만 공유하면 숏폼 앱 화면이 안 보인다).
+     */
+    @ReactMethod
+    fun requestScreenCapture(promise: Promise) {
+        val activity = context.currentActivity
+        if (activity == null || capturePromise != null) {
+            promise.resolve(false)
+            return
+        }
+        try {
+            val mpm = context.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+            val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                mpm.createScreenCaptureIntent(MediaProjectionConfig.createConfigForDefaultDisplay())
+            } else {
+                mpm.createScreenCaptureIntent()
+            }
+            capturePromise = promise
+            activity.startActivityForResult(intent, REQ_SCREEN_CAPTURE)
+        } catch (e: Exception) {
+            capturePromise = null
+            promise.reject("SCREEN_CAPTURE_FAILED", e.message, e)
+        }
+    }
+
+    /** 서비스가 지금 화면 캡처로 숏폼을 판별하고 있는가 */
+    @ReactMethod
+    fun isCapturing(promise: Promise) {
+        promise.resolve(OverlayService.isCapturing)
+    }
 
     @ReactMethod
     fun canDrawOverlays(promise: Promise) {
@@ -57,6 +122,13 @@ class OverlayModule(private val context: ReactApplicationContext) : ReactContext
                 }
                 if (config.hasKey("walkWidthRatio")) {
                     putExtra(OverlayService.EXTRA_WALK_RATIO, config.getDouble("walkWidthRatio").toFloat())
+                }
+                // 방금 받은 화면 캡처 허용 결과 (한 번만 넘긴다)
+                captureData?.let { data ->
+                    putExtra(OverlayService.EXTRA_CAPTURE_CODE, captureCode)
+                    putExtra(OverlayService.EXTRA_CAPTURE_DATA, data)
+                    captureCode = 0
+                    captureData = null
                 }
                 if (config.hasKey("targets")) {
                     val arr = config.getArray("targets")

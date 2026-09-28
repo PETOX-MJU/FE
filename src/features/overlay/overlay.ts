@@ -29,6 +29,9 @@ type OverlayNative = {
   }): Promise<boolean>;
   stop(): void;
   isRunning(): Promise<boolean>;
+  /** 숏폼 화면 판별용 화면 캡처 허용 창. 허용하면 true — 다음 start() 부터 화면으로 숏폼을 가린다 */
+  requestScreenCapture?(): Promise<boolean>;
+  isCapturing?(): Promise<boolean>;
 };
 
 const native: OverlayNative | undefined = NativeModules.PetoxOverlay;
@@ -134,6 +137,7 @@ export async function syncOverlay(): Promise<boolean> {
   const p = await checkOverlayPermissions();
   if (__DEV__) console.log('[overlay] 권한', p);
   if (!p.overlay || !p.usage) return false;
+  await ensureScreenCapture();
   await native!.start({
     petUri: await currentPetUri(),
     ...OVERLAY_TIMING,
@@ -144,6 +148,22 @@ export async function syncOverlay(): Promise<boolean> {
     }))),
   });
   return true;
+}
+
+/** 이번 앱 실행에서 화면 캡처 허용을 이미 물어봤는가 — 거절하면 다시 묻지 않고 앱 단위로 감지한다 */
+let captureAsked = false;
+
+/**
+ * 숏폼 화면 판별(AI 분류기)용 화면 캡처 허용을 받는다. 앱을 켤 때마다 한 번 묻는다
+ * (안드로이드 정책상 허용은 앱 실행마다 새로 받아야 한다). 거절해도 오버레이는 앱 단위로 동작한다.
+ */
+async function ensureScreenCapture(): Promise<void> {
+  if (captureAsked || !native?.requestScreenCapture || !native.isCapturing)
+    return;
+  if (await native.isCapturing().catch(() => false)) return;
+  captureAsked = true;
+  const ok = await native.requestScreenCapture().catch(() => false);
+  if (__DEV__) console.log('[overlay] 화면 캡처 허용', ok);
 }
 
 /** 다음에 안내할 권한 (없으면 null). 다른 앱 위에 표시 → 사용 정보 접근 순서. */

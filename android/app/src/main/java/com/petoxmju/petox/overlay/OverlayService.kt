@@ -3,6 +3,7 @@ package com.petoxmju.petox.overlay
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
+import android.app.Activity
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -16,9 +17,15 @@ import android.content.pm.ServiceInfo
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.PixelFormat
+import android.hardware.display.DisplayManager
+import android.hardware.display.VirtualDisplay
+import android.media.ImageReader
+import android.media.projection.MediaProjection
+import android.media.projection.MediaProjectionManager
 import android.net.Uri
 import android.os.Build
 import android.os.Handler
+import android.os.HandlerThread
 import android.os.IBinder
 import android.os.Looper
 import android.os.VibrationEffect
@@ -44,7 +51,11 @@ import kotlin.concurrent.thread
  * - 대상 앱을 벗어나면 펫이 사라지고 시간도 처음부터 다시 센다.
  * - 펫을 누르면 펫톡스 앱이 열린다.
  *
- * 화면 내용은 보지 않는다(앱 단위 감지). 숏폼 화면만 골라내는 분류기는 AI 쪽 모델이 나오면 붙인다.
+ * 숏폼 화면 판별: 사용자가 화면 캡처(MediaProjection)를 허용했으면, 대상 앱이 앞에 있을 때만
+ * 1초에 한 장 화면을 작게 떠서 AI 숏폼 분류기(ShortsClassifier)에 넣는다. 최근 SHORTS_WINDOW 장의
+ * 평균 점수가 SHORTS_THRESHOLD 이상일 때만 "숏폼을 보는 중"으로 센다 (유튜브 홈·일반 영상은 제외).
+ * 프레임은 메모리에서만 쓰고 바로 버린다. 캡처를 허용하지 않았거나 모델을 못 읽으면
+ * 예전처럼 앱 단위로 감지한다.
  */
 class OverlayService : Service() {
 
@@ -64,6 +75,20 @@ class OverlayService : Service() {
         const val EXTRA_TARGETS = "targets"
         const val EXTRA_WALK_FRAMES = "walkFrames"
         const val EXTRA_WALK_RATIO = "walkWidthRatio"
+        const val EXTRA_CAPTURE_CODE = "captureResultCode"
+        const val EXTRA_CAPTURE_DATA = "captureData"
+
+        /**
+         * 숏폼 판정 — 최근 몇 장(1초 간격)의 평균 점수가 임계값 이상이면 숏폼.
+         * AI 저장소 eval.py 가 모델과 함께 정한 값을 반올림하지 말고 그대로 넣는다 (README 「앱 연동 메모」).
+         * TODO(현식): 릴리스 노트의 추천 임계값·창 크기로 바꾸기. 지금은 eval.py 기본 창 5, 임계값 0.5.
+         */
+        private const val SHORTS_WINDOW = 5
+        private const val SHORTS_THRESHOLD = 0.5f
+        /** 펫이 떠 있는 동안 숏폼이 아니라고 나와도 이만큼(초)은 봐준다 — 펫이 화면에 찍혀 점수가 흔들려도 깜박이지 않게 */
+        private const val HIDE_AFTER_SEC = 4
+        /** 캡처 해상도 = 화면 / 이 값 (모델 입력이 448×224 라 크게 뜰 필요가 없다) */
+        private const val CAPTURE_DOWNSCALE = 4
 
         /** 걷기 한 프레임 시간, 화면 밖 → 자리까지 걷는 시간 */
         private const val WALK_FRAME_MS = 150L
@@ -71,6 +96,11 @@ class OverlayService : Service() {
 
         @Volatile
         var isRunning = false
+            private set
+
+        /** 화면 캡처로 숏폼 화면을 판별하고 있는가 */
+        @Volatile
+        var isCapturing = false
             private set
 
         val DEFAULT_TARGETS = arrayOf(
@@ -111,6 +141,19 @@ class OverlayService : Service() {
     private var growEverySec = 30
     private var targets: Set<String> = DEFAULT_TARGETS.toSet()
 
+    // ---- 숏폼 판별 (화면 캡처 + 분류기) ----
+    private var projection: MediaProjection? = null
+    private var virtualDisplay: VirtualDisplay? = null
+    private var imageReader: ImageReader? = null
+    private var classifier: ShortsClassifier? = null
+    private val inferThread = HandlerThread("petox-shorts").apply { start() }
+    private val inferHandler = Handler(inferThread.looper)
+    @Volatile private var inferBusy = false
+    /** 지금 앱에서 모은 최근 점수 (메인 스레드에서만 만진다) */
+    private val recentScores = ArrayDeque<Float>()
+    private var shortsNow = false
+    private var notShortsSec = 0
+
     private var foregroundPkg: String? = null
     private var lastEventQuery = 0L
     private var watchedSec = 0
@@ -137,7 +180,8 @@ class OverlayService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         loadConfig(intent)
         Log.i(TAG, "start: appearAfter=${appearAfterSec}s growEvery=${growEverySec}s targets=$targets pet=$petUri")
-        startAsForeground()
+        startAsForeground(withCapture = projection != null)
+        maybeStartCapture(intent)
         if (!isRunning) {
             isRunning = true
             lastEventQuery = System.currentTimeMillis() - 60_000L
@@ -152,6 +196,12 @@ class OverlayService : Service() {
         isRunning = false
         handler.removeCallbacks(tick)
         hidePet()
+        stopCapture("service destroyed")
+        // 판별 중이던 한 장이 끝난 뒤 닫는다 (같은 스레드에 줄 세움)
+        val model = classifier
+        classifier = null
+        inferHandler.post { model?.close() }
+        inferThread.quitSafely()
         super.onDestroy()
     }
 
@@ -185,7 +235,7 @@ class OverlayService : Service() {
 
     // ---- 포그라운드 알림 ----
 
-    private fun startAsForeground() {
+    private fun startAsForeground(withCapture: Boolean) {
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             nm.createNotificationChannel(
@@ -213,20 +263,138 @@ class OverlayService : Service() {
             .setContentIntent(open)
             .setOngoing(true)
             .build()
+        // 화면 캡처를 쓰려면 서비스가 mediaProjection 유형으로 떠 있어야 한다 (Android 10+)
+        val capture = if (withCapture) ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION else 0
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+            startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE or capture)
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && withCapture) {
+            startForeground(NOTIFICATION_ID, notification, capture)
         } else {
             startForeground(NOTIFICATION_ID, notification)
         }
+    }
+
+    // ---- 화면 캡처 (숏폼 판별용) ----
+
+    /** 앱이 방금 받은 화면 캡처 허용 결과가 넘어왔으면 캡처를 시작한다 (허용 결과는 한 번만 쓸 수 있다) */
+    private fun maybeStartCapture(intent: Intent?) {
+        if (intent == null || projection != null) return
+        val code = intent.getIntExtra(EXTRA_CAPTURE_CODE, 0)
+        val data: Intent? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent.getParcelableExtra(EXTRA_CAPTURE_DATA, Intent::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            intent.getParcelableExtra(EXTRA_CAPTURE_DATA)
+        }
+        if (code != Activity.RESULT_OK || data == null) return
+
+        val model = classifier ?: try {
+            ShortsClassifier(this).also {
+                classifier = it
+                Log.i(TAG, "shorts classifier loaded: input=${it.inputSize}")
+            }
+        } catch (e: Throwable) {
+            Log.w(TAG, "shorts classifier load failed — 앱 단위 감지로 동작", e)
+            return
+        }
+
+        try {
+            startAsForeground(withCapture = true) // getMediaProjection 보다 먼저
+            val mpm = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+            val mp = mpm.getMediaProjection(code, data) ?: return
+            mp.registerCallback(object : MediaProjection.Callback() {
+                override fun onStop() {
+                    handler.post { stopCapture("projection stopped") }
+                }
+            }, handler)
+            val metrics = resources.displayMetrics
+            val w = (metrics.widthPixels / CAPTURE_DOWNSCALE).coerceAtLeast(1)
+            val h = (metrics.heightPixels / CAPTURE_DOWNSCALE).coerceAtLeast(1)
+            val reader = ImageReader.newInstance(w, h, PixelFormat.RGBA_8888, 2)
+            projection = mp
+            imageReader = reader
+            virtualDisplay = mp.createVirtualDisplay(
+                "petox-shorts", w, h, (metrics.densityDpi / CAPTURE_DOWNSCALE).coerceAtLeast(1),
+                DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, reader.surface, null, inferHandler,
+            )
+            isCapturing = true
+            Log.i(TAG, "screen capture started ${w}x$h (model ${model.inputSize})")
+        } catch (e: Exception) {
+            Log.w(TAG, "screen capture start failed — 앱 단위 감지로 동작", e)
+            stopCapture("start failed")
+        }
+    }
+
+    private fun stopCapture(reason: String) {
+        if (projection == null && virtualDisplay == null && imageReader == null) return
+        Log.i(TAG, "screen capture stopped: $reason")
+        isCapturing = false
+        virtualDisplay?.release()
+        virtualDisplay = null
+        val mp = projection
+        projection = null
+        try { mp?.stop() } catch (e: Exception) { Log.w(TAG, "projection stop failed", e) }
+        imageReader?.close()
+        imageReader = null
+        recentScores.clear()
+        shortsNow = false
+    }
+
+    /** 지금 화면 한 장을 분류기에 넣는다 (별도 스레드). 앞의 판별이 안 끝났으면 건너뛴다. */
+    private fun requestClassify(pkg: String) {
+        val reader = imageReader ?: return
+        val model = classifier ?: return
+        if (inferBusy) return
+        inferBusy = true
+        inferHandler.post {
+            try {
+                val image = reader.acquireLatestImage()
+                if (image != null) {
+                    val frame = try { image.toBitmap() } finally { image.close() }
+                    val score = model.score(frame)
+                    frame.recycle()
+                    handler.post { pushScore(pkg, score) }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "classify failed", e)
+            } finally {
+                inferBusy = false
+            }
+        }
+    }
+
+    private fun pushScore(pkg: String, score: Float) {
+        if (pkg != foregroundPkg) return // 그새 앱이 바뀌었다
+        recentScores.addLast(score)
+        while (recentScores.size > SHORTS_WINDOW) recentScores.removeFirst()
+        // N장이 모이기 전에는 숏폼으로 판정하지 않는다 (README)
+        val avg = if (recentScores.size < SHORTS_WINDOW) 0f else recentScores.average().toFloat()
+        val next = recentScores.size >= SHORTS_WINDOW && avg >= SHORTS_THRESHOLD
+        if (next != shortsNow) Log.i(TAG, "shorts=$next avg=${"%.3f".format(avg)} ($pkg)")
+        shortsNow = next
     }
 
     // ---- 감지 ----
 
     private fun step() {
         updateForegroundApp()
-        val watching = foregroundPkg != null && targets.contains(foregroundPkg)
+        val pkg = foregroundPkg
+        val inTarget = pkg != null && targets.contains(pkg)
+        val classifying = isCapturing && classifier != null
+        if (inTarget && classifying) requestClassify(pkg!!)
+
+        val petOnScreen = shownStage >= 0 || walkView != null
+        val watching = when {
+            !inTarget -> false
+            !classifying -> true // 캡처를 허용 안 했으면 예전처럼 앱 단위
+            shortsNow -> true
+            petOnScreen -> ++notShortsSec < HIDE_AFTER_SEC // 잠깐 흔들린 건 봐준다
+            else -> false
+        }
+        if (!classifying || shortsNow) notShortsSec = 0
         if (!watching) {
             watchedSec = 0
+            notShortsSec = 0
             hidePet()
             return
         }
@@ -265,6 +433,9 @@ class OverlayService : Service() {
             }
             if (resumed && event.packageName != foregroundPkg) {
                 foregroundPkg = event.packageName
+                // 앱이 바뀌면 점수를 처음부터 모은다 (README)
+                recentScores.clear()
+                shortsNow = false
                 Log.i(TAG, "foreground: $foregroundPkg (target=${targets.contains(foregroundPkg)})")
             }
         }

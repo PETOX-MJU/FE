@@ -24,6 +24,7 @@ import { fetchPetSlotLimit } from '@/api/onboarding';
 import { supabase } from '@/api/supabase';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { notifyCoinsChanged, useCoinBalance } from '@/hooks/useCoinBalance';
+import type { PetId } from '@/constants/onboardingStrings';
 import type { LocalPet } from '@/storage/petProfile';
 import { fonts } from '@/theme/fonts';
 
@@ -61,11 +62,20 @@ const GOLDEN_PREVIEW: Preview = {
   scale: 1.28,
   shiftX: 0.05,
 };
-const LOCKED_PREVIEW: Preview[] = [
-  GOLDEN_PREVIEW,
-  { source: homePetImages.dachshund },
-  { source: homePetImages.husky },
+/** 잠긴 칸 미리보기 후보 — 이미 키우는 견종은 빼고 돌려 쓴다 */
+const LOCKED_PREVIEW: { breed: PetId; preview: Preview }[] = [
+  { breed: 'golden', preview: GOLDEN_PREVIEW },
+  { breed: 'husky', preview: { source: homePetImages.husky } },
+  { breed: 'dachshund', preview: { source: homePetImages.dachshund } },
+  { breed: 'corgi', preview: { source: homePetImages.corgi } },
 ];
+
+/** 키우는 펫과 겹치지 않는 미리보기 목록 (다 겹치면 전부) */
+function lockedPreviews(pets: LocalPet[]): Preview[] {
+  const owned = new Set(pets.map(p => p.pet).filter(Boolean));
+  const rest = LOCKED_PREVIEW.filter(c => !owned.has(c.breed));
+  return (rest.length > 0 ? rest : LOCKED_PREVIEW).map(c => c.preview);
+}
 
 /** 키우는 펫 한 마리의 칸 그림 */
 function previewOf(p: LocalPet, fallback: ImageSourcePropType): Preview {
@@ -151,6 +161,7 @@ export function PetSlotPanel({
   const unlocked = Math.max(limit, pets.length);
   const slotCount = Math.max(MIN_SLOTS, unlocked + 1);
   const slotPrice = slotItem?.price;
+  const previews = lockedPreviews(pets);
 
   const requireLogin = async () => {
     const { data: auth } = await supabase.auth.getSession();
@@ -293,7 +304,7 @@ export function PetSlotPanel({
                       size={cellSize}
                       mine={false}
                       preview={
-                        LOCKED_PREVIEW[item.index % LOCKED_PREVIEW.length]
+                        previews[(item.index - unlocked) % previews.length]
                       }
                       locked
                       price={slotPrice}

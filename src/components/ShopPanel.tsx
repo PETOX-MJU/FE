@@ -19,6 +19,8 @@ import {
   NotEnoughCoinsError,
   ShopRuleError,
   buyItem,
+  cachedShopState,
+  equipItem,
   equipTheme,
   fetchShopState,
   notifyShopChanged,
@@ -27,6 +29,7 @@ import {
   type ShopState,
 } from '@/api/shop';
 import {
+  appliedItemCount,
   itemLock,
   serverThemeIds,
   themeProgress,
@@ -48,6 +51,15 @@ const RULE_TEXT: Record<ShopRule, string> = {
   inOrder: '앞 단계 아이템부터 차례대로 구매해야 해요.',
 };
 
+/** 지금 적용 중인 테마가 목록의 몇 번째인지. 기본 테마(초원)는 목록에 없어서 -1. */
+function equippedThemeIndex(shop: ShopState | null): number {
+  if (!shop) return -1;
+  return shopThemes.findIndex(t => {
+    const server = shop.itemsByName.get(t.name);
+    return server ? shop.equippedIds.has(server.id) : false;
+  });
+}
+
 type Props = {
   // 말풍선 꼬리가 가리킬 위치 — 패널 오른쪽 끝에서 꼬리 중심까지의 거리
   tailRight?: number;
@@ -57,7 +69,10 @@ type Props = {
 // 상점 버튼에서 펼쳐지는 말풍선 패널.
 // 왼쪽은 테마(좌우로 넘김), 오른쪽은 그 테마에 속한 아이템 4개.
 export function ShopPanel({ tailRight = 27, style }: Props) {
-  const [themeIndex, setThemeIndex] = useState(0);
+  // 홈 화면이 받아 둔 값으로 시작한다 — 첫 그림부터 적용 중인 테마가 보인다
+  const [themeIndex, setThemeIndex] = useState(() =>
+    Math.max(0, equippedThemeIndex(cachedShopState())),
+  );
   const [gridW, setGridW] = useState(0);
   const listRef = useRef<FlatList<ShopTheme>>(null);
 
@@ -67,7 +82,7 @@ export function ShopPanel({ tailRight = 27, style }: Props) {
   const itemSize = gridW > 0 ? (gridW - GAP) / 2 : 0;
 
   // 서버 카탈로그(가격·uuid)와 내 보유 목록. 패널이 열릴 때마다 새로 읽는다.
-  const [shop, setShop] = useState<ShopState | null>(null);
+  const [shop, setShop] = useState<ShopState | null>(cachedShopState);
   const [buying, setBuying] = useState(false);
   const { coins } = useCoinBalance();
 
@@ -100,6 +115,21 @@ export function ShopPanel({ tailRight = 27, style }: Props) {
     loadShop();
   }, [loadShop]);
 
+  // 기억해 둔 값이 없었던 첫 실행에서만, 서버 응답이 오면 자리를 맞춘다.
+  // 한 번 넘겨 본 뒤에는 건드리지 않는다 (구매하고 돌아올 때 자리가 튀지 않게).
+  const jumped = useRef(cachedShopState() !== null);
+  useEffect(() => {
+    if (!shop || jumped.current) return;
+    jumped.current = true;
+    const index = equippedThemeIndex(shop);
+    if (index <= 0) return;
+    setThemeIndex(index);
+    listRef.current?.scrollToOffset({
+      offset: index * THEME_COL_W,
+      animated: false,
+    });
+  }, [shop]);
+
   /** 화면에 보일 가격 — 서버에 등록된 아이템이면 서버 가격이 기준이다. */
   const priceOf = (entry: { name: string; price: number }) =>
     shop?.itemsByName.get(entry.name)?.price ?? entry.price;
@@ -114,6 +144,8 @@ export function ShopPanel({ tailRight = 27, style }: Props) {
   };
   const lockOf = (t: ShopTheme, index: number) =>
     shop ? itemLock(t, index, shop) : null;
+  /** 앞에서부터 몇 개가 적용 중인지 — 그 다음 하나만 적용, 마지막 하나만 해제할 수 있다 */
+  const appliedCount = shop ? appliedItemCount(theme, shop) : 0;
 
   const requireLogin = async () => {
     const { data: auth } = await supabase.auth.getSession();
@@ -208,10 +240,34 @@ export function ShopPanel({ tailRight = 27, style }: Props) {
     index: number,
   ) => {
     if (buying || !(await requireLogin())) return;
-    if (isOwned(item)) {
-      notice(item.name, '이미 가지고 있어요.', item.thumbnail);
+    const owned = shop?.itemsByName.get(item.name);
+
+    // 가진 아이템은 누를 때마다 적용 ↔ 해제.
+    // 배경 그림이 "앞에서부터 n개를 놓은 모습"이라 중간을 비울 수 없어서,
+    // 적용은 다음 차례(appliedCount)만, 해제는 마지막(appliedCount - 1)만 된다.
+    if (owned && isOwned(item)) {
+      const applied = appliedItemCount(t, shop!);
+      const canApply = index === applied;
+      const canRemove = index === applied - 1;
+      if (!canApply && !canRemove) {
+        notice(
+          item.name,
+          index < applied
+            ? '뒤에 놓은 것부터 차례대로 빼야 해요.'
+            : '앞 단계부터 차례대로 놓아야 해요.',
+          item.thumbnail,
+        );
+        return;
+      }
+      try {
+        await equipItem(owned.id, canApply);
+        await loadShop();
+      } catch {
+        notice('바꾸지 못했어요', '잠시 후 다시 시도해 주세요.', item.thumbnail);
+      }
       return;
     }
+
     const server = shop?.itemsByName.get(item.name);
     if (!server) {
       // 서버 items 테이블에 아직 없는 아이템 — BE 에 같은 이름으로 등록돼야 살 수 있다.
@@ -232,7 +288,10 @@ export function ShopPanel({ tailRight = 27, style }: Props) {
       );
       return;
     }
-    purchase({ name: item.name, image: item.thumbnail }, server);
+    // 사면 바로 놓인다 (기존 동작 유지)
+    purchase({ name: item.name, image: item.thumbnail }, server, () =>
+      equipItem(server.id, true),
+    );
   };
 
   const handleMomentumEnd = useCallback(
@@ -265,6 +324,13 @@ export function ShopPanel({ tailRight = 27, style }: Props) {
             showsHorizontalScrollIndicator={false}
             snapToInterval={THEME_COL_W}
             decelerationRate="fast"
+            // 첫 그림부터 적용 중인 테마 자리에 그린다 (넘어가는 모습이 안 보인다)
+            initialScrollIndex={safeIndex}
+            getItemLayout={(_, i) => ({
+              length: THEME_COL_W,
+              offset: THEME_COL_W * i,
+              index: i,
+            })}
             onMomentumScrollEnd={handleMomentumEnd}
             renderItem={({ item }) => (
               <ThemeCard
@@ -296,6 +362,7 @@ export function ShopPanel({ tailRight = 27, style }: Props) {
                 size={itemSize}
                 price={priceOf(item)}
                 owned={isOwned(item)}
+                applied={i < appliedCount}
                 locked={!isOwned(item) && lockOf(theme, i) !== null}
                 onPress={() => handleItemPress(theme, item, i)}
               />
@@ -365,14 +432,20 @@ function ItemCard({
   size,
   price,
   owned,
+  applied,
   locked,
   onPress,
-}: { item: ShopItem; size: number; locked: boolean } & CardProps) {
-  // TODO: 배치(홈 화면에 놓기)는 아직 없다.
+}: { item: ShopItem; size: number; locked: boolean; applied: boolean } &
+  CardProps) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${item.name}, ${locked ? '잠김' : `${price} 코인`}`}
+      accessibilityState={owned ? { checked: applied } : undefined}
+      accessibilityLabel={
+        owned
+          ? `${item.name}, ${applied ? '놓음, 누르면 빼기' : '누르면 놓기'}`
+          : `${item.name}, ${locked ? '잠김' : `${price} 코인`}`
+      }
       onPress={onPress}
       style={({ pressed }) => [
         styles.itemCard,
@@ -392,6 +465,12 @@ function ItemCard({
       {/* 가진 아이템은 가격을 숨기고, 아직 못 사는 아이템은 흐리게 + 자물쇠 */}
       {locked && <View style={styles.lockedDim} />}
       {!owned && (locked ? <LockTag /> : <PriceTag price={price} />)}
+      {/* 홈에 놓은 아이템 표시 — 다시 누르면 빠진다 */}
+      {applied && (
+        <View style={styles.appliedBadge}>
+          <Text style={styles.appliedCheck}>✓</Text>
+        </View>
+      )}
     </Pressable>
   );
 }
@@ -494,6 +573,23 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.6,
+  },
+  appliedBadge: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#8DC63F',
+  },
+  appliedCheck: {
+    fontFamily: fonts.kkukkukk,
+    fontSize: 12,
+    color: '#FFFFFF',
+    includeFontPadding: false,
   },
   fill: {
     width: '100%',

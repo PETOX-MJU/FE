@@ -25,6 +25,13 @@ export type ShopState = {
   equippedIds: Set<string>;
 };
 
+// 마지막으로 읽어 온 상점 상태. 홈 화면이 배경을 그리며 이미 한 번 받아 두기 때문에,
+// 상점 패널은 이 값으로 첫 화면을 바로 올바르게 그릴 수 있다 (서버 응답을 기다리는 동안
+// 엉뚱한 테마가 보였다가 바뀌는 깜빡임을 없앤다).
+let cached: ShopState | null = null;
+
+export const cachedShopState = (): ShopState | null => cached;
+
 export async function fetchShopState(): Promise<ShopState> {
   const [itemsRes, ownedRes] = await Promise.all([
     supabase
@@ -51,7 +58,8 @@ export async function fetchShopState(): Promise<ShopState> {
   const equippedIds = new Set(
     owned.filter(r => r.is_equipped).map(r => r.item_id as string),
   );
-  return { itemsByName, ownedIds, equippedIds };
+  cached = { itemsByName, ownedIds, equippedIds };
+  return cached;
 }
 
 // ---- 상점이 바뀌었을 때(구매·테마 적용) 홈 배경 등에 알리기 ----
@@ -97,6 +105,24 @@ export async function equipTheme(
       .eq('item_id', themeServerId);
     if (on.error) throw on.error;
   }
+  notifyShopChanged();
+}
+
+/**
+ * 아이템 적용/해제 — user_items.is_equipped (테마와 같은 컬럼을 쓴다).
+ * 홈 배경은 "앞에서부터 연속으로 적용 중인 아이템 수"로 그림을 고르므로,
+ * 적용은 다음 차례 하나만, 해제는 마지막 하나만 할 수 있다 (화면에서 막는다).
+ */
+export async function equipItem(itemId: string, on: boolean): Promise<void> {
+  const { data: auth } = await supabase.auth.getSession();
+  const uid = auth.session?.user.id;
+  if (!uid) return;
+  const { error } = await supabase
+    .from('user_items')
+    .update({ is_equipped: on })
+    .eq('user_id', uid)
+    .eq('item_id', itemId);
+  if (error) throw error;
   notifyShopChanged();
 }
 

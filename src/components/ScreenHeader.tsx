@@ -12,6 +12,8 @@ type Props = {
   title: string;
   onBack: () => void;
   style?: ViewStyle;
+  /** 글자·화살표 색 — 어두운 배경 위에선 흰색으로 */
+  color?: string;
 };
 
 /**
@@ -19,17 +21,18 @@ type Props = {
  * (화면 좌우 여백 24, 상태바 아래 14, 화살표와 제목 사이 14, 제목 28).
  * 부모가 이미 좌우 여백을 준 경우엔 style 로 paddingHorizontal: 0 을 넘긴다.
  */
-export function ScreenHeader({ title, onBack, style }: Props) {
+export function ScreenHeader({ title, onBack, style, color }: Props) {
   return (
     <View style={[styles.header, style]}>
       <Pressable
         onPress={onBack}
         accessibilityRole="button"
         accessibilityLabel="뒤로 가기"
-        hitSlop={12}>
-        <BackChevron />
+        hitSlop={12}
+      >
+        <BackChevron color={color} />
       </Pressable>
-      <Text style={styles.title}>{title}</Text>
+      <Text style={[styles.title, color ? { color } : null]}>{title}</Text>
     </View>
   );
 }

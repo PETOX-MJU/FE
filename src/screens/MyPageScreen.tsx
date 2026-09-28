@@ -35,6 +35,7 @@ import {
 import { PetSprite } from '@/components/PetSprite';
 import { screentime } from '@/features/screentime/onDevice';
 import { useHomeScene } from '@/hooks/useHomeScene';
+import { DARK_SCENES } from '@/data/sceneTone.generated';
 import type { PetId } from '@/constants/onboardingStrings';
 import { loadPetProfile, renameActivePet } from '@/storage/petProfile';
 import { petoxColors, petoxLayout, petoxTextBase } from '@/theme/petox';
@@ -311,6 +312,8 @@ export function MyPageScreen({ navigation }: Props) {
   // 홈과 같은 배경(적용 중인 테마의 산 단계 그림, 없으면 기본 초원)을
   // 화면 높이에 맞춰 덮는다(cover, 위쪽 기준).
   const scene = useHomeScene();
+  // 밤 배경처럼 윗부분이 어두우면 헤더·상태바를 흰색으로 (scripts/scene-tone.py 가 미리 잰 목록)
+  const darkScene = scene !== null && DARK_SCENES.has(scene);
   const pageH = Math.max(screenH, insets.top + DESIGN_H);
   const bgW = Math.max(screenW, pageH * HOME_BG_ASPECT);
   const bgH = bgW / HOME_BG_ASPECT;
@@ -318,7 +321,7 @@ export function MyPageScreen({ navigation }: Props) {
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle={darkScene ? 'light-content' : 'dark-content'} />
       <ScrollView
         bounces={false}
         showsVerticalScrollIndicator={false}
@@ -346,7 +349,11 @@ export function MyPageScreen({ navigation }: Props) {
 
         <View style={{ paddingTop: insets.top }}>
           {/* 헤더: 뒤로가기 + 제목 */}
-          <ScreenHeader title="마이페이지" onBack={() => navigation.goBack()} />
+          <ScreenHeader
+            title="마이페이지"
+            onBack={() => navigation.goBack()}
+            color={darkScene ? '#FFFFFF' : undefined}
+          />
 
           {/* 펫 + 이름판 */}
           <View style={styles.petStage}>

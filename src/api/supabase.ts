@@ -12,5 +12,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
+    // 모바일 OAuth(카카오): 앱으로 돌아온 주소의 ?code= 를 exchangeCodeForSession 으로 바꾼다
+    flowType: 'pkce',
   },
 });

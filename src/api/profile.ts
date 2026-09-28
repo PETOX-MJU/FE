@@ -29,8 +29,12 @@ export async function fetchNickname(): Promise<string | null> {
   const fromProfile = (data?.nickname as string | null | undefined)?.trim();
   if (fromProfile) return fromProfile;
 
+  // 이메일 가입은 nickname, 카카오는 name/full_name 에 카카오 닉네임이 들어온다
+  const meta = user.user_metadata ?? {};
   const fromSignup = (
-    user.user_metadata?.nickname as string | undefined
+    (meta.nickname ?? meta.name ?? meta.full_name ?? meta.user_name) as
+      | string
+      | undefined
   )?.trim();
   if (fromSignup) {
     supabase

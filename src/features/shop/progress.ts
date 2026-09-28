@@ -30,6 +30,21 @@ export function themeProgress(
   return { themeOwned: owns(shop, theme.name), ownedCount };
 }
 
+/**
+ * 앞에서부터 연속으로 "적용 중"인 아이템 수 (0~4) = 홈에 깔 scenes 번호.
+ * 중간을 비울 수 없다 — scenes 가 "앞에서부터 n개를 놓은 모습"이라서다.
+ */
+export function appliedItemCount(theme: ShopTheme, shop: ShopState): number {
+  let count = 0;
+  for (const item of theme.items) {
+    const server = shop.itemsByName.get(item.name);
+    if (!server) break;
+    if (!shop.ownedIds.has(server.id) || !shop.equippedIds.has(server.id)) break;
+    count += 1;
+  }
+  return count;
+}
+
 /** 아이템이 잠겼으면 그 이유, 살 수 있으면(또는 이미 가졌으면) null */
 export function itemLock(
   theme: ShopTheme,
@@ -52,14 +67,14 @@ export function equippedTheme(shop: ShopState): ShopTheme | null {
   );
 }
 
-/** 홈 배경 — 적용 중인 테마의 "앞에서부터 n개 산 모습". 없으면 null(기본 초원). */
+/** 홈 배경 — 적용 중인 테마의 "앞에서부터 n개 적용한 모습". 없으면 null(기본 초원). */
 export function homeSceneOf(shop: ShopState): ImageSourcePropType | null {
   const theme = equippedTheme(shop);
   if (!theme) return null;
-  const { ownedCount } = themeProgress(theme, shop);
+  const applied = appliedItemCount(theme, shop);
   const scenes = theme.scenes ?? [];
   return (
-    scenes[Math.min(ownedCount, scenes.length - 1)] ?? theme.background ?? null
+    scenes[Math.min(applied, scenes.length - 1)] ?? theme.background ?? null
   );
 }
 

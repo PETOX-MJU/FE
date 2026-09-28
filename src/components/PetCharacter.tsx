@@ -19,11 +19,17 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { homeImages } from '@/assets/images';
+import {
+  PET_WALK_FRAME_MS,
+  walkSize,
+  type PetWalk,
+} from '@/assets/images/petWalk';
 import { colors } from '@/theme/colors';
 import { fonts } from '@/theme/fonts';
 
 // 피그마 기준 스프라이트 크기(dp)와, 스프라이트 왼쪽 위 기준 하트(+5) 위치
-const SPRITE_W = 82.2;
+export const PET_SPRITE_W = 82.2;
+const SPRITE_W = PET_SPRITE_W;
 const SPRITE_H = 119.9;
 const HEART_Y = -54.5;
 const HEART_SIZE = 32;
@@ -37,7 +43,16 @@ type Props = {
   onTap: () => void;
   onLongPress?: () => void;
   style?: StyleProp<ViewStyle>;
+  /** 걷기 그림(왼쪽을 보고 걷는 프레임 + 도트 크기). 있으면 가끔 좌우로 걸어다닌다 */
+  walk?: PetWalk;
+  /** 제자리 기준으로 걸어갈 수 있는 가로 범위(dp) — 화면 밖으로 안 나가게 */
+  roam?: { min: number; max: number };
 };
+
+/** 걷는 속도(dp/초, 배경 배율 1 기준)와 쉬는 시간 */
+const WALK_SPEED = 45;
+const REST_MIN_MS = 3500;
+const REST_MAX_MS = 8000;
 
 export function PetCharacter({
   source,
@@ -47,7 +62,10 @@ export function PetCharacter({
   onTap,
   onLongPress,
   style,
+  walk,
+  roam,
 }: Props) {
+  const walkFrames = walk?.frames;
   const [alreadyClaimedHint, setAlreadyClaimedHint] = useState(false);
   const hintTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -94,8 +112,69 @@ export function PetCharacter({
   const w = SPRITE_W * k;
   const h = SPRITE_H * k;
 
+  // ---- 돌아다니기: 쉬었다가(앉은 모습) → 좌우 아무 데나 걸어가서 → 다시 앉는다 ----
+  const roamX = useSharedValue(0);
+  const posX = useRef(0);
+  const [walking, setWalking] = useState(false);
+  const [facingRight, setFacingRight] = useState(false);
+  const [frame, setFrame] = useState(0);
+  const canRoam = !!walkFrames?.length && !!roam && roam.max - roam.min > 40;
+  const roamMin = roam?.min ?? 0;
+  const roamMax = roam?.max ?? 0;
+
+  useEffect(() => {
+    if (!canRoam) return;
+    let alive = true;
+    let timer: ReturnType<typeof setTimeout>;
+    const rest = () => {
+      timer = setTimeout(
+        walkOnce,
+        REST_MIN_MS + Math.random() * (REST_MAX_MS - REST_MIN_MS),
+      );
+    };
+    const walkOnce = () => {
+      if (!alive) return;
+      const from = posX.current;
+      const to = roamMin + Math.random() * (roamMax - roamMin);
+      if (Math.abs(to - from) < 30 * k) return rest();
+      const ms = (Math.abs(to - from) / (WALK_SPEED * k)) * 1000;
+      setFacingRight(to > from);
+      setWalking(true);
+      roamX.value = withTiming(to, { duration: ms, easing: Easing.linear });
+      timer = setTimeout(() => {
+        posX.current = to;
+        setWalking(false);
+        rest();
+      }, ms);
+    };
+    rest();
+    return () => {
+      alive = false;
+      clearTimeout(timer);
+    };
+  }, [canRoam, roamMin, roamMax, k, roamX]);
+
+  // 걷는 동안만 프레임을 넘긴다
+  useEffect(() => {
+    if (!walking) return;
+    const t = setInterval(
+      () => setFrame(f => (f + 1) % (walkFrames?.length ?? 1)),
+      PET_WALK_FRAME_MS,
+    );
+    return () => clearInterval(t);
+  }, [walking, walkFrames]);
+
+  const roamStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: roamX.value }],
+  }));
+
+  // 앉은 그림과 도트 한 칸 크기가 같도록 — 발끝을 맞추고 가운데 정렬
+  const { width: walkW, height: walkH } = walk
+    ? walkSize(walk, h)
+    : { width: 0, height: 0 };
+
   return (
-    <View style={[{ width: w, height: h }, style]}>
+    <Animated.View style={[{ width: w, height: h }, style, roamStyle]}>
       {canClaim && <CheckInBubble k={k} petWidth={w} />}
       <Animated.View
         pointerEvents="none"
@@ -123,7 +202,28 @@ export function PetCharacter({
         hitSlop={12}
       >
         <Animated.View style={bodyStyle}>
-          <Image source={source} style={{ width: w, height: h }} />
+          {/* 앉은 모습 — 걷는 동안엔 숨긴다 (지우지 않아서 다시 앉을 때 깜빡이지 않는다) */}
+          <Image
+            source={source}
+            style={[{ width: w, height: h }, walking && styles.hidden]}
+          />
+          {walkFrames?.map((src, i) => (
+            <Image
+              key={i}
+              source={src}
+              fadeDuration={0}
+              style={[
+                styles.walkFrame,
+                {
+                  width: walkW,
+                  height: walkH,
+                  left: (w - walkW) / 2,
+                  transform: [{ scaleX: facingRight ? -1 : 1 }],
+                },
+                !(walking && i === frame) && styles.hidden,
+              ]}
+            />
+          ))}
         </Animated.View>
       </Pressable>
 
@@ -135,7 +235,7 @@ export function PetCharacter({
           오늘은 이미 출석했어요
         </Text>
       )}
-    </View>
+    </Animated.View>
   );
 }
 
@@ -228,6 +328,8 @@ const BUBBLE_BORDER = '#3A2A1E';
 const HINT_W = 220;
 
 const styles = StyleSheet.create({
+  hidden: { opacity: 0 },
+  walkFrame: { position: 'absolute', bottom: 0 },
   reward: {
     position: 'absolute',
     flexDirection: 'row',

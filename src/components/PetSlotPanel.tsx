@@ -274,7 +274,7 @@ function Separator() {
 /** 그림이 칸에서 차지하는 기본 크기 */
 const IMAGE_RATIO = 0.84;
 
-/** 키우는 펫 칸 — 그림 + 아래 이름. 지금 홈에 나와 있는 펫은 초록 테두리 */
+/** 키우는 펫 칸 — 그림만 (이름은 누르면 팝업에). 지금 홈에 나와 있는 펫은 초록 테두리 */
 function PetCell({
   size,
   mine,
@@ -316,9 +316,6 @@ function PetCell({
           transform: [{ translateX: -shift }, { translateY: -lift }],
         }}
       />
-      <Text style={styles.petLabel} numberOfLines={1} pointerEvents="none">
-        {label}
-      </Text>
     </Pressable>
   );
 }
@@ -438,18 +435,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderWidth: 2,
     borderColor: '#EEEEEE',
-  },
-  // 키우는 펫 칸 아래 이름
-  petLabel: {
-    position: 'absolute',
-    bottom: 5,
-    left: 6,
-    right: 6,
-    textAlign: 'center',
-    fontFamily: fonts.kkukkukk,
-    fontSize: 12,
-    color: '#5A5A5A',
-    includeFontPadding: false,
   },
   // 새 친구 칸 — 점선 테두리
   cellOpen: {

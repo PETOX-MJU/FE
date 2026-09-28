@@ -370,6 +370,8 @@ class OverlayService : Service() {
         // N장이 모이기 전에는 숏폼으로 판정하지 않는다 (README)
         val avg = if (recentScores.size < SHORTS_WINDOW) 0f else recentScores.average().toFloat()
         val next = recentScores.size >= SHORTS_WINDOW && avg >= SHORTS_THRESHOLD
+        // 한 장마다 점수를 남긴다 — 임계값 맞출 때 logcat 으로 본다 (adb logcat -s PetoxOverlay)
+        Log.d(TAG, "score=${"%.3f".format(score)} avg=${"%.3f".format(avg)} n=${recentScores.size}")
         if (next != shortsNow) Log.i(TAG, "shorts=$next avg=${"%.3f".format(avg)} ($pkg)")
         shortsNow = next
     }

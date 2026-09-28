@@ -12,6 +12,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { loadPetProfile } from '@/storage/petProfile';
+import { requestUsageSync } from '@/features/screentime/sync';
 import {
   nextMissingPermission,
   openOverlaySettings,
@@ -74,7 +75,12 @@ export function HomeScreen({ navigation }: Props) {
   const ensureOverlay = useCallback(async () => {
     const missing = await nextMissingPermission();
     setPermAsk(missing);
-    if (!missing) await syncOverlay();
+    if (!missing) {
+      await syncOverlay();
+      // 사용시간 업로드 — 동의를 아직 안 물었으면 한 번 묻고, 동의했으면 올린다(5분에 한 번).
+      // 서버는 그날 사용시간이 한 줄도 없으면 미션을 실패로 정산한다.
+      requestUsageSync();
+    }
   }, []);
 
   useFocusEffect(

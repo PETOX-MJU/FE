@@ -23,6 +23,7 @@ import {
   type MissionRow,
 } from '@/features/screentime/dashboard';
 import { loadAnalysisSettings, screentime } from '@/features/screentime/onDevice';
+import { syncDailyUsage } from '@/features/screentime/sync';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 import { colors } from '@/theme/colors';
 import { petoxColors, petoxFont, petoxLayout, petoxTextBase } from '@/theme/petox';
@@ -178,7 +179,8 @@ type AnalysisState =
   | { status: 'loading' | 'needsPermission' | 'unsupported' | 'error' }
   | { status: 'ready'; dashboard: DashboardModel };
 
-// 사용 기록은 폰 안에서 모아 Kotlin 분석기로 분석한다. 서버로 보내지 않는다.
+// 사용 기록은 폰 안에서 모아 Kotlin 분석기로 분석한다. 분석을 위해 서버로 보내지 않는다.
+// (미션 정산용 하루 합계는 동의한 경우에만 따로 올린다 — features/screentime/sync.ts)
 function useOnDeviceAnalysis(): AnalysisState {
   const [state, setState] = useState<AnalysisState>({ status: 'loading' });
   useEffect(() => {
@@ -189,6 +191,8 @@ function useOnDeviceAnalysis(): AnalysisState {
       if (!(await screentime.hasUsageAccess())) return set({ status: 'needsPermission' });
       const output = await screentime.analyze(await loadAnalysisSettings());
       set({ status: 'ready', dashboard: toDashboardModel({ analysis: output }) });
+      // 대시보드를 볼 때도 사용시간을 올려 둔다(동의한 경우만, 5분에 한 번).
+      syncDailyUsage().catch(e => console.warn('사용시간 업로드 실패', e));
     };
     const refresh = () =>
       run().catch(error => {

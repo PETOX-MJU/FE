@@ -30,6 +30,15 @@ type ScreentimeNative = {
   hasUsageAccess(): Promise<boolean>;
   openUsageAccessSettings(): void;
   analyzeLastWeek(settings: AnalysisSettings): Promise<string>;
+  dailyUsage(targetPackages: string[], days: number): Promise<string>;
+};
+
+/** 네이티브 dailyUsage 가 돌려주는 하루치. apps 가 null 이면 그날 기록이 없다(확인 불가, 0분 아님). */
+export type DailyUsageDay = {
+  /** 기기 시간대 기준 날짜 YYYY-MM-DD */
+  date: string;
+  quality: 'complete' | 'partial' | 'unavailable';
+  apps: Array<{ package_name: string; duration_ms: number }> | null;
 };
 
 const native: ScreentimeNative | undefined = NativeModules.PetoxScreentime;
@@ -41,6 +50,9 @@ export const screentime = {
   openUsageAccessSettings: () => native?.openUsageAccessSettings(),
   analyze: async (settings: AnalysisSettings): Promise<AnalysisOutput> =>
     JSON.parse(await native!.analyzeLastWeek(settings)),
+  /** 최근 days 일(오늘 포함)의 날짜별·앱별 사용시간. 서버 업로드용 (features/screentime/sync.ts). */
+  dailyUsage: async (targetPackages: string[], days: number): Promise<DailyUsageDay[]> =>
+    JSON.parse(await native!.dailyUsage(targetPackages, days)),
 };
 
 /** 로그인했으면 BE profiles·user_detected_apps 값을 쓰고, 빈 값은 기본값으로 채운다. */

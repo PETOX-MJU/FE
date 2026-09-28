@@ -14,6 +14,7 @@ import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
+import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.uimanager.ViewManager
 import com.petox.screentime.AnalysisInput
@@ -31,6 +32,8 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.temporal.TemporalAdjusters
 import kotlin.concurrent.thread
+import org.json.JSONArray
+import org.json.JSONObject
 
 private const val MEASUREMENT_VERSION = "android-events-v1"
 private const val PROFILE_VERSION = 1L
@@ -73,6 +76,60 @@ class ScreentimeModule(private val context: ReactApplicationContext) : ReactCont
                 promise.reject("ANALYSIS_FAILED", e.message, e)
             }
         }
+    }
+
+    /**
+     * 최근 [days]일(오늘 포함)의 날짜별·앱별 사용시간을 JSON 문자열로 돌려준다. 서버 daily_usage 업로드용.
+     * JS 는 사용자가 사용시간 저장에 동의했을 때만 이걸 불러 올린다 (android-data-contract.md 6절).
+     *
+     * - 날짜 경계는 기기 시간대의 자정~자정이다. 서버 usage_date(KST 날짜)와 같은 기준이다.
+     * - 측정은 주간 분석과 같은 UsageIntervals 를 써서 대시보드 숫자와 어긋나지 않는다.
+     * - 기록이 없는 날은 quality "unavailable" + apps null 로 돌려준다. 0분으로 꾸미지 않는다.
+     *
+     * 형식: [{"date":"2026-09-25","quality":"partial","apps":[{"package_name":"...","duration_ms":123}]}]
+     */
+    @ReactMethod
+    fun dailyUsage(targetPackages: ReadableArray, days: Int, promise: Promise) {
+        thread(name = "petox-daily-usage") {
+            try {
+                val targets = targetPackages.toArrayList().map { it as String }.toSet()
+                promise.resolve(runDailyUsage(targets, days.coerceIn(1, 14)))
+            } catch (e: Exception) {
+                promise.reject("DAILY_USAGE_FAILED", e.message, e)
+            }
+        }
+    }
+
+    private fun runDailyUsage(targets: Set<String>, days: Int): String {
+        val zone = ZoneId.systemDefault()
+        val now = System.currentTimeMillis()
+        val today = LocalDate.now(zone)
+        val dates = (days - 1 downTo 0).map { today.minusDays(it.toLong()) }
+        fun startOf(day: LocalDate) = day.atStartOfDay(zone).toInstant().toEpochMilli()
+        // 첫 날의 시작 상태(화면·잠금·전경 앱)를 되짚도록 하루 앞부터 조회한다.
+        val events = readEvents(startOf(dates.first()) - DAY_MS, now)
+        val collected = UsageIntervals.collect(events, now, excludedPackages())
+        val dataFrom = events.minOfOrNull { it.timeMs }
+
+        val out = JSONArray()
+        for (day in dates) {
+            val window = Window(startMs = startOf(day), endMs = startOf(day.plusDays(1)))
+            val usage = UsageIntervals.windowUsage(collected, window, now, dataFrom) ?: continue
+            val apps = usage.apps?.let { list ->
+                JSONArray().apply {
+                    list.filter { it.packageName in targets }.forEach {
+                        put(JSONObject().put("package_name", it.packageName).put("duration_ms", it.durationMs))
+                    }
+                }
+            }
+            out.put(
+                JSONObject()
+                    .put("date", day.toString())
+                    .put("quality", usage.quality.wire)
+                    .put("apps", apps ?: JSONObject.NULL),
+            )
+        }
+        return out.toString()
     }
 
     private fun runAnalysis(settings: ReadableMap): String {

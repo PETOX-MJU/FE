@@ -34,6 +34,11 @@ import {
 } from '@/components/ScreenHeader';
 import { PetSprite } from '@/components/PetSprite';
 import { screentime } from '@/features/screentime/onDevice';
+import {
+  loadUsageSyncConsent,
+  saveUsageSyncConsent,
+  syncDailyUsage,
+} from '@/features/screentime/sync';
 import { useHomeScene } from '@/hooks/useHomeScene';
 import type { PetId } from '@/constants/onboardingStrings';
 import { loadPetProfile, savePetProfile } from '@/storage/petProfile';
@@ -140,6 +145,8 @@ export function MyPageScreen({ navigation }: Props) {
     reportAlert: true,
   });
   const [editing, setEditing] = useState<'petName' | 'nickname' | null>(null);
+  // 사용시간 서버 저장 동의 (미션 판정·코인에 필요). 기기에 계정별로 저장한다.
+  const [usageSync, setUsageSync] = useState(false);
 
   useEffect(() => {
     hasSession()
@@ -152,6 +159,9 @@ export function MyPageScreen({ navigation }: Props) {
         fetchNotificationSettings()
           .then(n => n && setNotif(n))
           .catch(e => console.warn('알림 설정을 불러오지 못했어요', e));
+        loadUsageSyncConsent()
+          .then(c => setUsageSync(c === 'granted'))
+          .catch(() => {});
       })
       .catch(() => setSignedIn(false));
   }, []);
@@ -188,6 +198,26 @@ export function MyPageScreen({ navigation }: Props) {
         message: '잠시 후 다시 시도해 주세요.',
       });
     });
+  };
+
+  const toggleUsageSync = (v: boolean) => {
+    if (!signedIn) {
+      showDialog({
+        title: '로그인이 필요해요',
+        message: '로그인하면 사용시간 저장을 설정할 수 있어요.',
+      });
+      return;
+    }
+    setUsageSync(v);
+    saveUsageSyncConsent(v ? 'granted' : 'denied')
+      .then(() => {
+        if (v) return syncDailyUsage({ force: true }).then(() => undefined);
+        showDialog({
+          title: '사용시간 저장을 껐어요',
+          message: '사용시간이 올라가지 않은 날은 미션이 실패로 처리되고 코인을 받을 수 없어요.',
+        });
+      })
+      .catch(e => console.warn('사용시간 저장 설정 실패', e));
   };
 
   // 사용자 관리 3개는 로그인해야 서버에 저장할 수 있다. 회원탈퇴는 BE Edge Function(delete-account) 연동 시 확인 절차와 함께 붙인다.
@@ -274,6 +304,12 @@ export function MyPageScreen({ navigation }: Props) {
     {
       title: '권한 관리',
       rows: [
+        {
+          kind: 'toggle',
+          label: '사용시간 저장 (미션·코인)',
+          value: usageSync,
+          onChange: toggleUsageSync,
+        },
         {
           kind: 'links',
           items: [

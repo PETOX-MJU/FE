@@ -11,7 +11,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
-import Svg, { Path, Rect } from 'react-native-svg';
+import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { homeImages, homePetImages } from '@/assets/images';
 import {
   NotEnoughCoinsError,
@@ -71,10 +71,12 @@ type Props = {
   /** 지금 키우는 펫 그림 (홈 화면과 같은 것) */
   petSource: ImageSourcePropType;
   petName?: string;
+  /** 잠금을 푼 뒤 — 회원가입 때와 같은 사진 등록 화면으로 보낸다 */
+  onAddPet?: () => void;
   style?: StyleProp<ViewStyle>;
 };
 
-export function PetSlotPanel({ petSource, petName, style }: Props) {
+export function PetSlotPanel({ petSource, petName, onAddPet, style }: Props) {
   const [shop, setShop] = useState<ShopState | null>(null);
   const [buying, setBuying] = useState(false);
   const { coins } = useCoinBalance();
@@ -149,40 +151,40 @@ export function PetSlotPanel({ petSource, petName, style }: Props) {
       message: `${slotPrice}코인을 써서 펫을 한 마리 더 키울 수 있어요.`,
       confirmText: '잠금 해제',
       onConfirm: async () => {
-        // 화면에는 값이 보이지만 서버 상점에 아직 아이템이 없으면 실제로는 살 수 없다
-        if (!nextSlot) {
-          setDialog({
-            title: '아직 열 수 없어요',
-            message: '펫 슬롯이 상점에 등록되면 바로 풀 수 있어요.',
-          });
-          return;
-        }
-        setBuying(true);
-        let result: Dialog;
-        try {
-          await buyItem(nextSlot.id);
-          result = {
-            title: '슬롯이 열렸어요',
-            message: '이제 펫을 한 마리 더 키울 수 있어요.',
-          };
-        } catch (e) {
-          if (e instanceof NotEnoughCoinsError) {
-            result = {
-              title: '코인이 부족해요',
-              message: '잔액이 바뀌었어요. 다시 확인해 주세요.',
-            };
-          } else if (e instanceof ShopRuleError) {
-            result = { title: '펫 슬롯', message: '이미 열린 슬롯이에요.' };
-          } else {
-            result = { title: '구매 실패', message: '잠시 후 다시 시도해 주세요.' };
+        // 서버 상점에 pet_slot 이 등록돼 있으면 실제로 산다.
+        // 아직 없으면(= 화면에만 값이 보이는 상태) 코인은 건드리지 않고 넘어간다.
+        if (nextSlot) {
+          let failure: Dialog | null = null;
+          setBuying(true);
+          try {
+            await buyItem(nextSlot.id);
+          } catch (e) {
+            if (e instanceof NotEnoughCoinsError) {
+              failure = {
+                title: '코인이 부족해요',
+                message: '잔액이 바뀌었어요. 다시 확인해 주세요.',
+              };
+            } else if (e instanceof ShopRuleError) {
+              failure = { title: '펫 슬롯', message: '이미 열린 슬롯이에요.' };
+            } else {
+              failure = {
+                title: '구매 실패',
+                message: '잠시 후 다시 시도해 주세요.',
+              };
+            }
+          } finally {
+            notifyCoinsChanged();
+            notifyShopChanged();
+            await loadShop();
+            setBuying(false);
           }
-        } finally {
-          notifyCoinsChanged();
-          notifyShopChanged();
-          await loadShop();
-          setBuying(false);
+          if (failure) {
+            setDialog(failure);
+            return;
+          }
         }
-        setDialog(result);
+        setDialog(null);
+        onAddPet?.();
       },
     });
   };
@@ -232,7 +234,11 @@ export function PetSlotPanel({ petSource, petName, style }: Props) {
             ItemSeparatorComponent={Separator}
             renderItem={({ item }) =>
               item.kind === 'add' ? (
-                <AddCell size={cellSize} onPress={handleAdd} />
+                <AddCell
+                  size={cellSize}
+                  price={slotPrice}
+                  onPress={handleAdd}
+                />
               ) : (
                 <SlotCell
                   size={cellSize}
@@ -378,21 +384,77 @@ function SlotCell({
   );
 }
 
-function AddCell({ size, onPress }: { size: number; onPress: () => void }) {
+/** 카메라 아이콘 폭이 칸에서 차지하는 비율 */
+const CAMERA_RATIO = 0.42;
+
+/** 사진으로 펫 등록 — 자물쇠와 같은 선 굵기·색의 테두리 아이콘 */
+function CameraMark({ size }: { size: number }) {
+  const w = Math.round(size * CAMERA_RATIO);
+  return (
+    <Svg width={w} height={(w * 28) / 36} viewBox="0 0 36 28">
+      {/* 위쪽 볼록한 부분 */}
+      <Path
+        d="M12.5 5.5 14.5 2h7l2 3.5"
+        stroke="#FFFFFF"
+        strokeWidth={2.4}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+      {/* 몸통 */}
+      <Rect
+        x={1.7}
+        y={5.5}
+        width={32.6}
+        height={20.8}
+        rx={4.5}
+        stroke="#FFFFFF"
+        strokeWidth={2.4}
+        fill="none"
+      />
+      {/* 렌즈 */}
+      <Circle
+        cx={18}
+        cy={16}
+        r={6}
+        stroke="#FFFFFF"
+        strokeWidth={2.4}
+        fill="none"
+      />
+      {/* 플래시 */}
+      <Circle cx={28.5} cy={10.5} r={1.4} fill="#FFFFFF" />
+    </Svg>
+  );
+}
+
+function AddCell({
+  size,
+  price,
+  onPress,
+}: {
+  size: number;
+  price: number;
+  onPress: () => void;
+}) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="펫 슬롯 추가"
+      accessibilityLabel={`사진으로 펫 추가, ${price} 코인`}
       onPress={onPress}
       style={({ pressed }) => [
         styles.cell,
         { width: size, height: size },
         styles.cellEmpty,
-        styles.addCell,
         pressed && styles.pressed,
       ]}
     >
-      <Text style={styles.addText}>+</Text>
+      {/* 잠긴 칸과 같은 음영 — 흰 카메라와 값이 또렷하게 보이도록 */}
+      <View style={styles.lockedDim} pointerEvents="none" />
+      <CameraMark size={size} />
+      <View style={styles.priceTag} pointerEvents="none">
+        <Image source={homeImages.coin} style={styles.priceCoin} />
+        <Text style={styles.priceText}>{price}</Text>
+      </View>
     </Pressable>
   );
 }
@@ -471,16 +533,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  addCell: {
-    borderWidth: 2,
-    borderColor: '#E0E0E0',
-  },
-  addText: {
-    fontFamily: fonts.kkukkukk,
-    fontSize: 34,
-    color: '#B5B5B5',
-    includeFontPadding: false,
-  },
+
   pressed: {
     opacity: 0.6,
   },

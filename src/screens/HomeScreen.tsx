@@ -77,6 +77,11 @@ export function HomeScreen({ navigation }: Props) {
   // 걷기 그림이 있는 기본 캐릭터면 홈에서 좌우로 돌아다닌다 (코기·사진 캐릭터는 제자리)
   const [petWalk, setPetWalk] = useState<PetWalk | undefined>();
   const [petName, setPetName] = useState<string | undefined>();
+  // 사진으로 펫을 추가할 때 온보딩 화면에 그대로 넘겨 줄 값
+  const [petGoal, setPetGoal] = useState<{
+    goalMinutes: number;
+    blockSlots: string[];
+  } | null>(null);
   // ---- 펫 오버레이 (필수 기능) ----
   // 홈에 올 때마다, 설정에서 돌아올 때마다 권한을 확인하고
   // 빠진 권한이 있으면 안내 팝업, 다 있으면 서비스를 (다시) 시작한다.
@@ -113,6 +118,14 @@ export function HomeScreen({ navigation }: Props) {
       loadPetProfile()
         .then(profile => {
           setPetName(profile?.name);
+          setPetGoal(
+            profile
+              ? {
+                  goalMinutes: profile.goalMinutes,
+                  blockSlots: profile.blockSlots,
+                }
+              : null,
+          );
           if (profile?.generatedUri) {
             setPetSource({ uri: profile.generatedUri });
             setPetWalk(undefined);
@@ -236,6 +249,14 @@ export function HomeScreen({ navigation }: Props) {
           <PetSlotPanel
             petSource={petSource}
             petName={petName}
+            // 잠금을 풀면 회원가입 때와 같은 사진 등록 화면으로 보낸다
+            onAddPet={() => {
+              setOpenPanel(null);
+              navigation.navigate('OnboardingPetPhoto', {
+                goalMinutes: petGoal?.goalMinutes ?? 120,
+                blockSlots: petGoal?.blockSlots ?? [],
+              });
+            }}
             style={[
               styles.petSlotPanel,
               {

@@ -13,17 +13,11 @@ import {
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { homeImages, homePetImages } from '@/assets/images';
-import {
-  NotEnoughCoinsError,
-  buyItem,
-  fetchShopState,
-  notifyShopChanged,
-  type ServerItem,
-} from '@/api/shop';
+import { fetchShopState, type ServerItem } from '@/api/shop';
 import { fetchPetSlotLimit } from '@/api/onboarding';
 import { supabase } from '@/api/supabase';
 import { ConfirmModal } from '@/components/ConfirmModal';
-import { notifyCoinsChanged, useCoinBalance } from '@/hooks/useCoinBalance';
+import { useCoinBalance } from '@/hooks/useCoinBalance';
 import type { PetId } from '@/constants/onboardingStrings';
 import type { LocalPet } from '@/storage/petProfile';
 import { fonts } from '@/theme/fonts';
@@ -85,6 +79,9 @@ function previewOf(p: LocalPet, fallback: ImageSourcePropType): Preview {
   return { source: fallback };
 }
 
+/** 새 펫을 확정할 때 함께 살 펫 슬롯 */
+export type SlotPurchase = { itemId: string; price: number };
+
 type Cell =
   | { kind: 'pet'; pet: LocalPet }
   | { kind: 'empty'; index: number }
@@ -100,8 +97,8 @@ type Props = {
   activeId?: string;
   /** 다른 펫을 홈에 내보낸다 */
   onSelectPet?: (id: string) => void;
-  /** 빈 슬롯에 새 펫 등록 — 온보딩 캐릭터 화면(추가 모드)으로 보낸다 */
-  onAddPet?: () => void;
+  /** 새 펫 등록 화면으로 — 잠긴 칸에서 왔으면 확정 때 살 슬롯(slot)도 같이 */
+  onAddPet?: (slot?: SlotPurchase) => void;
   style?: StyleProp<ViewStyle>;
 };
 
@@ -115,7 +112,6 @@ export function PetSlotPanel({
 }: Props) {
   const [limit, setLimit] = useState(1);
   const [slotItem, setSlotItem] = useState<ServerItem | null>(null);
-  const [buying, setBuying] = useState(false);
   const { coins } = useCoinBalance();
   // 칸은 정사각형 — 보이는 너비에서 VISIBLE 개가 딱 들어가게 계산한다
   const [gridW, setGridW] = useState(0);
@@ -170,55 +166,36 @@ export function PetSlotPanel({
     return false;
   };
 
-  /** 새 펫 등록 화면으로 */
-  const startAdd = () => {
+  /** 새 펫 등록 화면으로. 잠긴 칸에서 왔으면 확정할 때 살 슬롯을 같이 넘긴다 */
+  const startAdd = (slot?: SlotPurchase) => {
     setDialog(null);
-    onAddPet?.();
+    onAddPet?.(slot);
   };
 
   /**
-   * 슬롯 하나 더 열기 — 서버 buy_item 으로 pet_slot 을 산 뒤 바로 새 펫 등록으로 넘어간다.
+   * 잠긴 칸 — 여기서는 코인을 쓰지 않고 펫 추가 화면으로만 보낸다.
+   * 코인(buy_item)은 새 펫을 확정하는 순간에 빠진다 — 중간에 나가면 아무것도 안 산 것.
    * 서버 상점에 pet_slot 이 아직 없으면 코인 없이 열어 주지 않고 "준비 중"으로 안내한다.
    */
   const handleUnlock = async () => {
-    if (buying || !(await requireLogin())) return;
+    if (!(await requireLogin())) return;
     if (!slotItem || slotPrice === undefined) {
       notice('준비 중이에요', '펫 슬롯은 곧 상점에 열려요.');
       return;
     }
     if ((coins ?? 0) < slotPrice) {
-      notice('코인이 부족해요', `잠금을 풀려면 ${slotPrice}코인이 필요해요.`);
+      notice(
+        '코인이 부족해요',
+        `새 친구를 데려오려면 ${slotPrice}코인이 필요해요.`,
+      );
       return;
     }
     setDialog({
-      title: '슬롯 잠금을 풀까요?',
-      message: `${slotPrice}코인을 써서 펫을 한 마리 더 키울 수 있어요.`,
-      confirmText: '잠금 해제',
-      onConfirm: async () => {
-        let failure: Dialog | null = null;
-        setBuying(true);
-        try {
-          await buyItem(slotItem.id);
-        } catch (e) {
-          failure =
-            e instanceof NotEnoughCoinsError
-              ? {
-                  title: '코인이 부족해요',
-                  message: '잔액이 바뀌었어요. 다시 확인해 주세요.',
-                }
-              : { title: '구매 실패', message: '잠시 후 다시 시도해 주세요.' };
-        } finally {
-          notifyCoinsChanged();
-          notifyShopChanged();
-          await load();
-          setBuying(false);
-        }
-        if (failure) {
-          setDialog(failure);
-          return;
-        }
-        startAdd();
-      },
+      title: '새 친구를 데려올까요?',
+      message: `펫을 만들 때 ${slotPrice}코인이 빠져요.`,
+      confirmText: '데려오기',
+      onConfirm: async () =>
+        startAdd({ itemId: slotItem.id, price: slotPrice }),
     });
   };
 
@@ -230,7 +207,11 @@ export function PetSlotPanel({
 
   const handlePetPress = (p: LocalPet) => {
     if (p.id === activeId) {
-      notice(p.name, '지금 함께 지내고 있는 펫이에요.', previewOf(p, petSource).source);
+      notice(
+        p.name,
+        '지금 함께 지내고 있는 펫이에요.',
+        previewOf(p, petSource).source,
+      );
       return;
     }
     setDialog({
@@ -297,7 +278,9 @@ export function PetSlotPanel({
                     />
                   );
                 case 'empty':
-                  return <EmptyCell size={cellSize} onPress={startAdd} />;
+                  return (
+                    <EmptyCell size={cellSize} onPress={() => startAdd()} />
+                  );
                 case 'locked':
                   return (
                     <SlotCell

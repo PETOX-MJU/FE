@@ -21,6 +21,7 @@ const TICK_MS = 60;
 export function OnboardingConvertScreen({ navigation, route }: Props) {
   const { goalMinutes, blockSlots } = route.params;
   const addPet = route.name === 'AddPetConvert';
+  const { slot } = route.params;
   const [percent, setPercent] = useState(0);
   const done = useRef(false);
 
@@ -43,8 +44,9 @@ export function OnboardingConvertScreen({ navigation, route }: Props) {
     navigation.replace(addPet ? 'AddPetConfirm' : 'OnboardingConfirm', {
       goalMinutes,
       blockSlots,
+      slot,
     });
-  }, [percent, navigation, goalMinutes, blockSlots, addPet]);
+  }, [percent, navigation, goalMinutes, blockSlots, addPet, slot]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>

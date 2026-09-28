@@ -31,6 +31,7 @@ type Props = NativeStackScreenProps<
 export function OnboardingPetPhotoScreen({ navigation, route }: Props) {
   const { goalMinutes, blockSlots } = route.params;
   const addPet = route.name === 'AddPetPhoto';
+  const { slot } = route.params;
   // 첨부된 사진의 로컬 경로. 사진 선택 기능을 붙이면 여기에 채웁니다.
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const hasPhoto = photoUri !== null;
@@ -150,7 +151,7 @@ export function OnboardingPetPhotoScreen({ navigation, route }: Props) {
             if (!hasPhoto) return;
             navigation.navigate(
               addPet ? 'AddPetConvert' : 'OnboardingConvert',
-              { goalMinutes, blockSlots },
+              { goalMinutes, blockSlots, slot },
             );
           }}
         />

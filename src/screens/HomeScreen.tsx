@@ -263,11 +263,12 @@ export function HomeScreen({ navigation }: Props) {
                 .catch(() => {});
             }}
             // 빈 슬롯 → 펫 추가 화면 (기존 펫은 덮어쓰지 않는다)
-            onAddPet={() => {
+            onAddPet={slot => {
               setOpenPanel(null);
               navigation.navigate('AddPetCharacter', {
                 goalMinutes: petGoal?.goalMinutes ?? 120,
                 blockSlots: petGoal?.blockSlots ?? [],
+                slot,
               });
             }}
             style={[

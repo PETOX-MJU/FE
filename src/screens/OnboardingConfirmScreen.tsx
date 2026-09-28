@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Image,
   KeyboardAvoidingView,
@@ -17,6 +17,8 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { PetoxTextField } from '@/components/PetoxTextField';
 import { PetSprite } from '@/components/PetSprite';
 import { onboardingStrings as S } from '@/constants/onboardingStrings';
+import { NotEnoughCoinsError, buyItem, notifyShopChanged } from '@/api/shop';
+import { notifyCoinsChanged } from '@/hooks/useCoinBalance';
 import {
   PetSlotFullError,
   addServerPet,
@@ -39,6 +41,7 @@ export function OnboardingConfirmScreen({ navigation, route }: Props) {
   const { goalMinutes, blockSlots, pet, generatedUri } = route.params;
   // 홈 펫 슬롯에서 온 "펫 추가" — 기존 펫은 두고 한 마리 더 만든다
   const addPet = route.name === 'AddPetConfirm';
+  const { slot } = route.params;
   const [name, setName] = useState('');
 
   const [error, setError] = useState<string | null>(null);
@@ -84,7 +87,31 @@ export function OnboardingConfirmScreen({ navigation, route }: Props) {
    * 펫 슬롯에서 온 경우 — 기존 펫은 그대로 두고 한 마리 더 만든다.
    * 서버에 먼저 만들고(슬롯 한도는 서버가 판단) 성공하면 기기 목록에 더해 홈에 내보낸다.
    */
+  // 슬롯은 한 번만 산다 — 산 뒤 펫 만들기가 실패해서 다시 눌러도 또 사지 않게
+  const slotBought = useRef(false);
   const saveNewPet = async (trimmed: string) => {
+    // 잠긴 칸에서 왔으면 여기서 슬롯을 산다 (코인은 이때 빠짐).
+    // 사고 나서 펫 만들기가 실패해도 산 슬롯은 열린 빈 칸으로 남아 다시 등록할 수 있다.
+    if (slot && !slotBought.current) {
+      try {
+        await buyItem(slot.itemId);
+        slotBought.current = true;
+      } catch (e) {
+        setSaving(false);
+        showDialog(
+          e instanceof NotEnoughCoinsError
+            ? {
+                title: '코인이 부족해요',
+                message: `새 친구를 데려오려면 ${slot.price}코인이 필요해요.`,
+              }
+            : { title: '저장 실패', message: S.confirmErrorSave },
+        );
+        return;
+      } finally {
+        notifyCoinsChanged();
+        notifyShopChanged();
+      }
+    }
     try {
       const serverId = await addServerPet({
         name: trimmed,
@@ -167,7 +194,13 @@ export function OnboardingConfirmScreen({ navigation, route }: Props) {
           <View style={styles.spacer} />
 
           <BoneButton
-            text={addPet ? S.addPetConfirmSubmit : S.confirmSubmit}
+            text={
+              !addPet
+                ? S.confirmSubmit
+                : slot
+                ? `${S.addPetConfirmSubmit} (${slot.price}코인)`
+                : S.addPetConfirmSubmit
+            }
             onPress={onSubmit}
           />
         </ScrollView>

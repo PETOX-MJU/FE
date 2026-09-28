@@ -41,6 +41,7 @@ export function OnboardingCharacterScreen({ navigation, route }: Props) {
   const { goalMinutes, blockSlots } = route.params;
   // 홈 펫 슬롯에서 온 "펫 추가" 화면인지
   const addPet = route.name === 'AddPetCharacter';
+  const { slot } = route.params;
   const [pet, setPet] = useState<PetId>('golden');
   const [gridH, setGridH] = useState(0);
   // 펫 추가 화면에선 이미 키우는 기본 캐릭터는 빼고 보여 준다
@@ -169,7 +170,7 @@ export function OnboardingCharacterScreen({ navigation, route }: Props) {
             onPress={() =>
               navigation.navigate(
                 addPet ? 'AddPetConfirm' : 'OnboardingConfirm',
-                { goalMinutes, blockSlots, pet },
+                { goalMinutes, blockSlots, pet, slot },
               )
             }
           />
@@ -183,6 +184,7 @@ export function OnboardingCharacterScreen({ navigation, route }: Props) {
             navigation.navigate(addPet ? 'AddPetPhoto' : 'OnboardingPetPhoto', {
               goalMinutes,
               blockSlots,
+              slot,
             })
           }
         />

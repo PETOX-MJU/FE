@@ -30,6 +30,12 @@ import { OnboardingConvertScreen } from '@/screens/OnboardingConvertScreen';
 import { OnboardingConfirmScreen } from '@/screens/OnboardingConfirmScreen';
 import type { PetId } from '@/constants/onboardingStrings';
 
+/**
+ * (펫 추가 화면에서만 씀) 잠긴 슬롯에서 펫 추가로 왔을 때, 새 펫을 확정하는 순간 살 펫 슬롯 (코인은 그때 빠진다).
+ * 이미 열린 빈 칸에서 왔으면 없음.
+ */
+type AddPetSlot = { slot?: { itemId: string; price: number } };
+
 export type RootStackParamList = {
   Splash: undefined;
   Login: undefined;
@@ -56,10 +62,10 @@ export type RootStackParamList = {
     edit?: string;
   };
   OnboardingApps: { goalMinutes: number; blockSlots: string[] };
-  OnboardingCharacter: { goalMinutes: number; blockSlots: string[] };
-  OnboardingPetPhoto: { goalMinutes: number; blockSlots: string[] };
-  OnboardingConvert: { goalMinutes: number; blockSlots: string[] };
-  OnboardingConfirm: {
+  OnboardingCharacter: { goalMinutes: number; blockSlots: string[] } & AddPetSlot;
+  OnboardingPetPhoto: { goalMinutes: number; blockSlots: string[] } & AddPetSlot;
+  OnboardingConvert: { goalMinutes: number; blockSlots: string[] } & AddPetSlot;
+  OnboardingConfirm: AddPetSlot & {
     goalMinutes: number;
     blockSlots: string[];
     /** 기본 캐릭터를 골라서 온 경우 */

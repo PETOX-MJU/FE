@@ -56,12 +56,17 @@ export type RootStackParamList = {
     edit?: string;
   };
   OnboardingApps: { goalMinutes: number; blockSlots: string[] };
-  OnboardingCharacter: { goalMinutes: number; blockSlots: string[] };
-  OnboardingPetPhoto: { goalMinutes: number; blockSlots: string[] };
-  OnboardingConvert: { goalMinutes: number; blockSlots: string[] };
+  /**
+   * addPet: 홈 펫 슬롯에서 두 번째 펫부터 새로 등록하는 흐름 (기존 펫은 그대로 두고 한 마리 더).
+   * 캐릭터 → (사진 → 변환) → 확정 화면을 온보딩과 같이 쓰고, 확정할 때만 다르게 저장한다.
+   */
+  OnboardingCharacter: { goalMinutes: number; blockSlots: string[]; addPet?: boolean };
+  OnboardingPetPhoto: { goalMinutes: number; blockSlots: string[]; addPet?: boolean };
+  OnboardingConvert: { goalMinutes: number; blockSlots: string[]; addPet?: boolean };
   OnboardingConfirm: {
     goalMinutes: number;
     blockSlots: string[];
+    addPet?: boolean;
     /** 기본 캐릭터를 골라서 온 경우 */
     pet?: PetId;
     /** 사진 변환으로 만들어진 캐릭터 이미지 경로 */

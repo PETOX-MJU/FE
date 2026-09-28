@@ -16,8 +16,12 @@ import { OnboardingHeader } from '@/components/OnboardingHeader';
 import { PetoxTextField } from '@/components/PetoxTextField';
 import { PetSprite } from '@/components/PetSprite';
 import { onboardingStrings as S } from '@/constants/onboardingStrings';
-import { saveOnboardingToServer } from '@/api/onboarding';
-import { savePetProfile } from '@/storage/petProfile';
+import {
+  PetSlotFullError,
+  addServerPet,
+  saveOnboardingToServer,
+} from '@/api/onboarding';
+import { addPet as addLocalPet, savePetProfile } from '@/storage/petProfile';
 import { petoxColors, petoxLayout, petoxTextBase } from '@/theme/petox';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 
@@ -28,7 +32,7 @@ const SPRITE = 220;
 const SPOTLIGHT_W = 240;
 
 export function OnboardingConfirmScreen({ navigation, route }: Props) {
-  const { goalMinutes, blockSlots, pet, generatedUri } = route.params;
+  const { goalMinutes, blockSlots, pet, generatedUri, addPet } = route.params;
   const [name, setName] = useState('');
 
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +47,10 @@ export function OnboardingConfirmScreen({ navigation, route }: Props) {
     if (saving) return;
 
     setSaving(true);
+    if (addPet) {
+      await saveNewPet(trimmed);
+      return;
+    }
     try {
       await savePetProfile({
         name: trimmed,
@@ -57,11 +65,38 @@ export function OnboardingConfirmScreen({ navigation, route }: Props) {
         petName: trimmed,
         goalMinutes,
         isDefaultCharacter: pet !== undefined,
+        breed: pet,
       });
       navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
     } catch {
       setSaving(false);
       showDialog({ title: '저장 실패', message: S.confirmErrorSave });
+    }
+  };
+
+  /**
+   * 펫 슬롯에서 온 경우 — 기존 펫은 그대로 두고 한 마리 더 만든다.
+   * 서버에 먼저 만들고(슬롯 한도는 서버가 판단) 성공하면 기기 목록에 더해 홈에 내보낸다.
+   */
+  const saveNewPet = async (trimmed: string) => {
+    try {
+      const serverId = await addServerPet({
+        name: trimmed,
+        isDefaultCharacter: pet !== undefined,
+        breed: pet,
+      });
+      await addLocalPet({ name: trimmed, pet, generatedUri, serverId });
+      navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
+    } catch (e) {
+      setSaving(false);
+      if (e instanceof PetSlotFullError) {
+        showDialog({
+          title: '빈 슬롯이 없어요',
+          message: '홈의 펫 슬롯에서 잠금을 먼저 풀어 주세요.',
+        });
+      } else {
+        showDialog({ title: '저장 실패', message: S.confirmErrorSave });
+      }
     }
   };
 
@@ -81,7 +116,9 @@ export function OnboardingConfirmScreen({ navigation, route }: Props) {
             onBack={() => navigation.goBack()}
           />
 
-          <Text style={styles.title}>{S.confirmTitle}</Text>
+          <Text style={styles.title}>
+            {addPet ? S.addPetConfirmTitle : S.confirmTitle}
+          </Text>
 
           <View style={styles.stage}>
             <Image
@@ -115,7 +152,10 @@ export function OnboardingConfirmScreen({ navigation, route }: Props) {
 
           <View style={styles.spacer} />
 
-          <BoneButton text={S.confirmSubmit} onPress={onSubmit} />
+          <BoneButton
+            text={addPet ? S.addPetConfirmSubmit : S.confirmSubmit}
+            onPress={onSubmit}
+          />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

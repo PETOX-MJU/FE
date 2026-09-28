@@ -15,30 +15,31 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { homeImages, homePetImages } from '@/assets/images';
 import {
   NotEnoughCoinsError,
-  ShopRuleError,
   buyItem,
   fetchShopState,
   notifyShopChanged,
   type ServerItem,
-  type ShopState,
 } from '@/api/shop';
+import { fetchPetSlotLimit } from '@/api/onboarding';
 import { supabase } from '@/api/supabase';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { notifyCoinsChanged, useCoinBalance } from '@/hooks/useCoinBalance';
+import type { LocalPet } from '@/storage/petProfile';
 import { fonts } from '@/theme/fonts';
 
 // 홈 버튼에서 위로 펼쳐지는 펫 슬롯 말풍선 패널 (꼬리가 아래 가운데를 가리킨다).
 // 칸은 가로 한 줄로 두고 옆으로 밀어서 넘겨 본다 — 슬롯이 늘어나도 패널 높이는 그대로다.
-// 1번 칸은 지금 키우는 펫, 나머지는 아직 안 열린 슬롯, 마지막 칸은 슬롯 추가(+).
-// 슬롯은 서버 상점의 pet_slot 아이템을 코인으로 사서 연다 — 몇 개를 샀는지가 곧 열린 슬롯 수다.
+//
+// 칸 순서: [키우는 펫들] → [열렸지만 빈 칸(카메라)] → [잠긴 칸(자물쇠·값)] → 마지막 추가(+) 칸.
+// 몇 칸이 열렸는지는 서버 profiles.pet_slot_limit (기본 1). 상점의 pet_slot 아이템을
+// buy_item 으로 사면 서버가 1씩 올린다 (보유 아이템으로 남지 않고 몇 번이든 살 수 있다).
+// 새 펫 등록은 온보딩 캐릭터 화면을 "추가 모드"로 다시 쓴다 — 기존 펫은 덮어쓰지 않는다.
 
-/** 화면에 그리는 슬롯 칸 수 (+ 칸은 따로) */
-const SLOT_COUNT = 4;
+/** 최소로 그리는 슬롯 칸 수 (+ 칸은 따로) */
+const MIN_SLOTS = 4;
 const GAP = 10;
 /** 한 화면에 보이는 칸 수 — 나머지는 옆으로 밀어서 본다 */
 const VISIBLE = 2;
-/** 슬롯 하나를 여는 값. 서버 items 에 pet_slot 이 등록되면 서버 가격이 우선이다. */
-const SLOT_PRICE = 500;
 
 // 아직 안 열린 슬롯에 흐리게 비쳐 보이는 펫 — "이런 친구를 더 키울 수 있어요" 미리보기.
 // 실제로 그 펫이 배정된다는 뜻은 아니다.
@@ -54,30 +55,56 @@ type Preview = {
   /** 왼쪽으로 옮기는 양 (칸 크기 대비 비율) */
   shiftX?: number;
 };
+const GOLDEN_PREVIEW: Preview = {
+  source: homePetImages.golden,
+  topPad: 1 - 262 / 350,
+  scale: 1.28,
+  shiftX: 0.05,
+};
 const LOCKED_PREVIEW: Preview[] = [
-  {
-    source: homePetImages.golden,
-    topPad: 1 - 262 / 350,
-    scale: 1.28,
-    shiftX: 0.05,
-  },
+  GOLDEN_PREVIEW,
   { source: homePetImages.dachshund },
   { source: homePetImages.husky },
 ];
 
-type Cell = { kind: 'slot'; index: number } | { kind: 'add' };
+/** 키우는 펫 한 마리의 칸 그림 */
+function previewOf(p: LocalPet, fallback: ImageSourcePropType): Preview {
+  if (p.generatedUri) return { source: { uri: p.generatedUri } };
+  if (p.pet === 'golden') return GOLDEN_PREVIEW;
+  if (p.pet) return { source: homePetImages[p.pet] };
+  return { source: fallback };
+}
+
+type Cell =
+  | { kind: 'pet'; pet: LocalPet }
+  | { kind: 'empty'; index: number }
+  | { kind: 'locked'; index: number }
+  | { kind: 'add' };
 
 type Props = {
-  /** 지금 키우는 펫 그림 (홈 화면과 같은 것) */
+  /** 지금 홈에 나와 있는 펫 그림 (그림 정보가 없는 펫의 대체 그림) */
   petSource: ImageSourcePropType;
-  petName?: string;
-  /** 잠금을 푼 뒤 — 회원가입 때와 같은 사진 등록 화면으로 보낸다 */
+  /** 키우는 펫 목록 */
+  pets: LocalPet[];
+  /** 지금 홈에 나와 있는 펫 */
+  activeId?: string;
+  /** 다른 펫을 홈에 내보낸다 */
+  onSelectPet?: (id: string) => void;
+  /** 빈 슬롯에 새 펫 등록 — 온보딩 캐릭터 화면(추가 모드)으로 보낸다 */
   onAddPet?: () => void;
   style?: StyleProp<ViewStyle>;
 };
 
-export function PetSlotPanel({ petSource, petName, onAddPet, style }: Props) {
-  const [shop, setShop] = useState<ShopState | null>(null);
+export function PetSlotPanel({
+  petSource,
+  pets,
+  activeId,
+  onSelectPet,
+  onAddPet,
+  style,
+}: Props) {
+  const [limit, setLimit] = useState(1);
+  const [slotItem, setSlotItem] = useState<ServerItem | null>(null);
   const [buying, setBuying] = useState(false);
   const { coins } = useCoinBalance();
   // 칸은 정사각형 — 보이는 너비에서 VISIBLE 개가 딱 들어가게 계산한다
@@ -99,30 +126,31 @@ export function PetSlotPanel({ petSource, petName, onAddPet, style }: Props) {
     image?: ImageSourcePropType,
   ) => setDialog({ title, message, image });
 
-  const loadShop = useCallback(async () => {
+  const load = useCallback(async () => {
     try {
-      setShop(await fetchShopState());
+      const [lim, shop] = await Promise.all([
+        fetchPetSlotLimit(),
+        fetchShopState(),
+      ]);
+      setLimit(lim);
+      // 서버 상점의 pet_slot 아이템 (여러 개면 가장 싼 것)
+      const items = [...shop.itemsByName.values()]
+        .filter(i => i.type === 'pet_slot')
+        .sort((a, b) => a.price - b.price);
+      setSlotItem(items[0] ?? null);
     } catch (e) {
       console.warn('펫 슬롯 정보를 불러오지 못했어요', e);
     }
   }, []);
 
   useEffect(() => {
-    loadShop();
-  }, [loadShop]);
+    load();
+  }, [load]);
 
-  // 서버 상점의 pet_slot 아이템들. 싼 것부터 = 먼저 열리는 슬롯.
-  const slotItems: ServerItem[] = shop
-    ? [...shop.itemsByName.values()]
-        .filter(i => i.type === 'pet_slot')
-        .sort((a, b) => a.price - b.price)
-    : [];
-  const boughtSlots = slotItems.filter(i => shop?.ownedIds.has(i.id)).length;
-  // BE 는 계정당 펫 1마리가 기본이고, 산 슬롯만큼 늘어난다 (api/onboarding.ts 주석)
-  const unlocked = 1 + boughtSlots;
-  const nextSlot = slotItems.find(i => !shop?.ownedIds.has(i.id));
-  // 칸에 보여 줄 값 — 서버에 등록돼 있으면 서버 가격이 기준 (상점과 같은 규칙)
-  const slotPrice = nextSlot?.price ?? SLOT_PRICE;
+  // 열린 칸 수 — 서버 한도가 늦게 오거나 예전 기기 저장값이 더 많아도 키우는 펫은 다 보이게
+  const unlocked = Math.max(limit, pets.length);
+  const slotCount = Math.max(MIN_SLOTS, unlocked + 1);
+  const slotPrice = slotItem?.price;
 
   const requireLogin = async () => {
     const { data: auth } = await supabase.auth.getSession();
@@ -131,18 +159,23 @@ export function PetSlotPanel({ petSource, petName, onAddPet, style }: Props) {
     return false;
   };
 
+  /** 새 펫 등록 화면으로 */
+  const startAdd = () => {
+    setDialog(null);
+    onAddPet?.();
+  };
+
   /**
-   * 잠금 해제 — 코인이 넉넉하면 안내 팝업, 모자라면 부족하다고 알린다.
-   * 확인을 누르면 서버 buy_item 으로 실제 구매한다 (최종 판단은 언제나 서버).
+   * 슬롯 하나 더 열기 — 서버 buy_item 으로 pet_slot 을 산 뒤 바로 새 펫 등록으로 넘어간다.
+   * 서버 상점에 pet_slot 이 아직 없으면 코인 없이 열어 주지 않고 "준비 중"으로 안내한다.
    */
-  const handleAdd = async () => {
+  const handleUnlock = async () => {
     if (buying || !(await requireLogin())) return;
-    if (unlocked > SLOT_COUNT) {
-      notice('슬롯이 가득 찼어요', '지금은 여기까지 늘릴 수 있어요.');
+    if (!slotItem || slotPrice === undefined) {
+      notice('준비 중이에요', '펫 슬롯은 곧 상점에 열려요.');
       return;
     }
-    const balance = coins ?? 0;
-    if (balance < slotPrice) {
+    if ((coins ?? 0) < slotPrice) {
       notice('코인이 부족해요', `잠금을 풀려면 ${slotPrice}코인이 필요해요.`);
       return;
     }
@@ -151,65 +184,66 @@ export function PetSlotPanel({ petSource, petName, onAddPet, style }: Props) {
       message: `${slotPrice}코인을 써서 펫을 한 마리 더 키울 수 있어요.`,
       confirmText: '잠금 해제',
       onConfirm: async () => {
-        // 서버 상점에 pet_slot 이 등록돼 있으면 실제로 산다.
-        // 아직 없으면(= 화면에만 값이 보이는 상태) 코인은 건드리지 않고 넘어간다.
-        if (nextSlot) {
-          let failure: Dialog | null = null;
-          setBuying(true);
-          try {
-            await buyItem(nextSlot.id);
-          } catch (e) {
-            if (e instanceof NotEnoughCoinsError) {
-              failure = {
-                title: '코인이 부족해요',
-                message: '잔액이 바뀌었어요. 다시 확인해 주세요.',
-              };
-            } else if (e instanceof ShopRuleError) {
-              failure = { title: '펫 슬롯', message: '이미 열린 슬롯이에요.' };
-            } else {
-              failure = {
-                title: '구매 실패',
-                message: '잠시 후 다시 시도해 주세요.',
-              };
-            }
-          } finally {
-            notifyCoinsChanged();
-            notifyShopChanged();
-            await loadShop();
-            setBuying(false);
-          }
-          if (failure) {
-            setDialog(failure);
-            return;
-          }
+        let failure: Dialog | null = null;
+        setBuying(true);
+        try {
+          await buyItem(slotItem.id);
+        } catch (e) {
+          failure =
+            e instanceof NotEnoughCoinsError
+              ? {
+                  title: '코인이 부족해요',
+                  message: '잔액이 바뀌었어요. 다시 확인해 주세요.',
+                }
+              : { title: '구매 실패', message: '잠시 후 다시 시도해 주세요.' };
+        } finally {
+          notifyCoinsChanged();
+          notifyShopChanged();
+          await load();
+          setBuying(false);
         }
-        setDialog(null);
-        onAddPet?.();
+        if (failure) {
+          setDialog(failure);
+          return;
+        }
+        startAdd();
       },
     });
   };
 
-  // 슬롯 칸들 + 마지막 추가(+) 칸
+  /** + 칸 — 빈 칸이 있으면 바로 등록, 없으면 잠금 해제부터 */
+  const handleAdd = () => {
+    if (pets.length < unlocked) startAdd();
+    else handleUnlock();
+  };
+
+  const handlePetPress = (p: LocalPet) => {
+    if (p.id === activeId) {
+      notice(p.name, '지금 함께 지내고 있는 펫이에요.', previewOf(p, petSource).source);
+      return;
+    }
+    setDialog({
+      title: p.name,
+      message: '이 친구와 함께할까요?\n홈과 화면 위에 이 친구가 나와요.',
+      image: previewOf(p, petSource).source,
+      confirmText: '바꾸기',
+      onConfirm: async () => {
+        setDialog(null);
+        onSelectPet?.(p.id);
+      },
+    });
+  };
+
   const cells: Cell[] = [
-    ...Array.from({ length: SLOT_COUNT }, (_, index) => ({
-      kind: 'slot' as const,
-      index,
-    })),
+    ...pets.map(pet => ({ kind: 'pet' as const, pet })),
+    ...Array.from({ length: slotCount - pets.length }, (_, k) => {
+      const index = pets.length + k;
+      return index < unlocked
+        ? { kind: 'empty' as const, index }
+        : { kind: 'locked' as const, index };
+    }),
     { kind: 'add' as const },
   ];
-
-  const handleSlotPress = (index: number) => {
-    if (index === 0) {
-      notice(petName ?? '내 펫', '지금 함께 지내고 있는 펫이에요.', petSource);
-      return;
-    }
-    if (index < unlocked) {
-      // 슬롯은 열렸는데 아직 두 번째 펫을 등록하는 흐름이 없다 (온보딩이 1마리 기준)
-      notice('빈 슬롯', '새 펫 등록은 곧 열려요.');
-      return;
-    }
-    handleAdd();
-  };
 
   return (
     <Animated.View
@@ -225,35 +259,57 @@ export function PetSlotPanel({ petSource, petName, onAddPet, style }: Props) {
         <View onLayout={e => setGridW(e.nativeEvent.layout.width)}>
           <FlatList
             data={cells}
-            keyExtractor={c => (c.kind === 'add' ? 'add' : String(c.index))}
+            keyExtractor={c =>
+              c.kind === 'add'
+                ? 'add'
+                : c.kind === 'pet'
+                ? c.pet.id
+                : `${c.kind}-${c.index}`
+            }
             horizontal
             showsHorizontalScrollIndicator={false}
             // 칸 하나씩 딱 맞게 멈춘다
             snapToInterval={cellSize + GAP}
             decelerationRate="fast"
             ItemSeparatorComponent={Separator}
-            renderItem={({ item }) =>
-              item.kind === 'add' ? (
-                <AddCell
-                  size={cellSize}
-                  price={slotPrice}
-                  onPress={handleAdd}
-                />
-              ) : (
-                <SlotCell
-                  size={cellSize}
-                  mine={item.index === 0}
-                  preview={
-                    item.index === 0
-                      ? { source: petSource }
-                      : LOCKED_PREVIEW[(item.index - 1) % LOCKED_PREVIEW.length]
-                  }
-                  locked={item.index >= unlocked}
-                  price={slotPrice}
-                  onPress={() => handleSlotPress(item.index)}
-                />
-              )
-            }
+            renderItem={({ item }) => {
+              switch (item.kind) {
+                case 'pet':
+                  return (
+                    <SlotCell
+                      size={cellSize}
+                      mine={item.pet.id === activeId}
+                      label={item.pet.name}
+                      preview={previewOf(item.pet, petSource)}
+                      locked={false}
+                      onPress={() => handlePetPress(item.pet)}
+                    />
+                  );
+                case 'empty':
+                  return <AddCell size={cellSize} onPress={startAdd} />;
+                case 'locked':
+                  return (
+                    <SlotCell
+                      size={cellSize}
+                      mine={false}
+                      preview={
+                        LOCKED_PREVIEW[item.index % LOCKED_PREVIEW.length]
+                      }
+                      locked
+                      price={slotPrice}
+                      onPress={handleUnlock}
+                    />
+                  );
+                case 'add':
+                  return (
+                    <AddCell
+                      size={cellSize}
+                      price={pets.length < unlocked ? undefined : slotPrice}
+                      onPress={handleAdd}
+                    />
+                  );
+              }
+            }}
           />
         </View>
       </View>
@@ -320,17 +376,21 @@ const IMAGE_RATIO = 0.84;
 function SlotCell({
   size,
   mine,
+  label,
   preview,
   locked,
   price,
   onPress,
 }: {
   size: number;
+  /** 지금 홈에 나와 있는 펫 칸 */
   mine: boolean;
+  /** 키우는 펫 이름 — 있으면 칸 아래에 적는다 */
+  label?: string;
   preview: Preview;
   locked: boolean;
   /** 잠긴 칸에 보여 줄 잠금 해제 값 */
-  price: number;
+  price?: number;
   onPress: () => void;
 }) {
   // 확대한 그림은 위 여백의 절반만큼 올려야 "그려진 부분"이 세로 가운데에 온다.
@@ -344,17 +404,21 @@ function SlotCell({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={
-        mine
-          ? '내 펫'
+        label !== undefined
+          ? `${label}${mine ? ', 지금 함께하는 펫' : ''}`
           : locked
-          ? `잠긴 펫 슬롯, ${price} 코인`
+          ? `잠긴 펫 슬롯${price !== undefined ? `, ${price} 코인` : ''}`
           : '빈 펫 슬롯'
       }
       onPress={onPress}
       style={({ pressed }) => [
         styles.cell,
         { width: size, height: size },
-        mine ? styles.cellMine : styles.cellEmpty,
+        mine
+          ? styles.cellMine
+          : label !== undefined
+          ? styles.cellOwned
+          : styles.cellEmpty,
         pressed && styles.pressed,
       ]}
     >
@@ -374,11 +438,18 @@ function SlotCell({
           <View style={styles.lockLayer} pointerEvents="none">
             <LockMark size={size} />
           </View>
-          <View style={styles.priceTag} pointerEvents="none">
-            <Image source={homeImages.coin} style={styles.priceCoin} />
-            <Text style={styles.priceText}>{price}</Text>
-          </View>
+          {price !== undefined && (
+            <View style={styles.priceTag} pointerEvents="none">
+              <Image source={homeImages.coin} style={styles.priceCoin} />
+              <Text style={styles.priceText}>{price}</Text>
+            </View>
+          )}
         </>
+      )}
+      {label !== undefined && (
+        <Text style={styles.petLabel} numberOfLines={1} pointerEvents="none">
+          {label}
+        </Text>
       )}
     </Pressable>
   );
@@ -433,13 +504,16 @@ function AddCell({
   onPress,
 }: {
   size: number;
-  price: number;
+  /** 잠금 해제 값 — 빈 칸이 이미 열려 있으면 없음 */
+  price?: number;
   onPress: () => void;
 }) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`사진으로 펫 추가, ${price} 코인`}
+      accessibilityLabel={
+        price !== undefined ? `새 펫 추가, ${price} 코인` : '새 펫 추가'
+      }
       onPress={onPress}
       style={({ pressed }) => [
         styles.cell,
@@ -451,10 +525,12 @@ function AddCell({
       {/* 잠긴 칸과 같은 음영 — 흰 카메라와 값이 또렷하게 보이도록 */}
       <View style={styles.lockedDim} pointerEvents="none" />
       <CameraMark size={size} />
-      <View style={styles.priceTag} pointerEvents="none">
-        <Image source={homeImages.coin} style={styles.priceCoin} />
-        <Text style={styles.priceText}>{price}</Text>
-      </View>
+      {price !== undefined && (
+        <View style={styles.priceTag} pointerEvents="none">
+          <Image source={homeImages.coin} style={styles.priceCoin} />
+          <Text style={styles.priceText}>{price}</Text>
+        </View>
+      )}
     </Pressable>
   );
 }
@@ -519,7 +595,24 @@ const styles = StyleSheet.create({
   cellMine: {
     backgroundColor: '#FFFFFF',
     borderWidth: 2,
-    borderColor: '#DDE8DC',
+    borderColor: '#9CC79A',
+  },
+  // 키우는 펫 칸 아래 이름
+  petLabel: {
+    position: 'absolute',
+    bottom: 5,
+    left: 6,
+    right: 6,
+    textAlign: 'center',
+    fontFamily: fonts.kkukkukk,
+    fontSize: 12,
+    color: '#5A5A5A',
+    includeFontPadding: false,
+  },
+  cellOwned: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#EEEEEE',
   },
   cellEmpty: {
     backgroundColor: '#ECECEC',

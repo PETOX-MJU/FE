@@ -33,7 +33,7 @@ const TOP_ROW_LIFT_RATIO = 0.08; // 윗줄을 스프라이트 × 0.08 만큼 위
 const ROW_GAP = 8;
 
 export function OnboardingCharacterScreen({ navigation, route }: Props) {
-  const { goalMinutes, blockSlots } = route.params;
+  const { goalMinutes, blockSlots, addPet } = route.params;
   const [pet, setPet] = useState<PetId>('golden');
   const [gridH, setGridH] = useState(0);
 
@@ -53,7 +53,9 @@ export function OnboardingCharacterScreen({ navigation, route }: Props) {
           onBack={() => navigation.goBack()}
         />
 
-        <Text style={styles.title}>{S.characterTitle}</Text>
+        <Text style={styles.title}>
+          {addPet ? S.addPetCharacterTitle : S.characterTitle}
+        </Text>
         <Text style={styles.subtitle}>{S.characterSubtitle}</Text>
 
         <View
@@ -126,6 +128,7 @@ export function OnboardingCharacterScreen({ navigation, route }: Props) {
               goalMinutes,
               blockSlots,
               pet,
+              addPet,
             })
           }
         />
@@ -138,6 +141,7 @@ export function OnboardingCharacterScreen({ navigation, route }: Props) {
             navigation.navigate('OnboardingPetPhoto', {
               goalMinutes,
               blockSlots,
+              addPet,
             })
           }
         />

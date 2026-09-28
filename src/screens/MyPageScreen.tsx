@@ -36,7 +36,7 @@ import { PetSprite } from '@/components/PetSprite';
 import { screentime } from '@/features/screentime/onDevice';
 import { useHomeScene } from '@/hooks/useHomeScene';
 import type { PetId } from '@/constants/onboardingStrings';
-import { loadPetProfile, savePetProfile } from '@/storage/petProfile';
+import { loadPetProfile, renameActivePet } from '@/storage/petProfile';
 import { petoxColors, petoxLayout, petoxTextBase } from '@/theme/petox';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 
@@ -157,10 +157,9 @@ export function MyPageScreen({ navigation }: Props) {
   }, []);
 
   const savePetName = async (name: string) => {
-    const profile = await loadPetProfile();
-    if (!profile) throw new Error('no pet profile');
-    await savePetProfile({ ...profile, name });
-    await renameServerPet(name);
+    // 펫이 여러 마리면 지금 홈에 나와 있는 펫만 바꾼다
+    const serverId = await renameActivePet(name);
+    await renameServerPet(name, serverId);
     setPetName(name);
     setEditing(null);
   };

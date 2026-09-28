@@ -15,7 +15,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'OnboardingConvert'>;
 const TICK_MS = 60;
 
 export function OnboardingConvertScreen({ navigation, route }: Props) {
-  const { goalMinutes, blockSlots } = route.params;
+  const { goalMinutes, blockSlots, addPet } = route.params;
   const [percent, setPercent] = useState(0);
   const done = useRef(false);
 
@@ -35,8 +35,8 @@ export function OnboardingConvertScreen({ navigation, route }: Props) {
     done.current = true;
     // 완성된 캐릭터를 들고 확정 화면으로. 뒤로 눌러 변환 화면에 돌아오지 않도록 replace.
     // TODO: 변환 결과 이미지 경로를 generatedUri 로 넘기면 확정 화면에 표시됩니다.
-    navigation.replace('OnboardingConfirm', { goalMinutes, blockSlots });
-  }, [percent, navigation, goalMinutes, blockSlots]);
+    navigation.replace('OnboardingConfirm', { goalMinutes, blockSlots, addPet });
+  }, [percent, navigation, goalMinutes, blockSlots, addPet]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>

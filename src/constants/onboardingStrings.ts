@@ -40,6 +40,8 @@ export const onboardingStrings = {
 
   // 3단계: 캐릭터 선택
   characterTitle: '캐릭터를 설정해 주세요',
+  /** 홈 펫 슬롯에서 새 펫을 한 마리 더 등록할 때 */
+  addPetCharacterTitle: '새 친구를 골라 주세요',
   characterSubtitle: '기본 캐릭터를 고르거나, 내 반려동물 사진으로\n만들 수 있어요',
   characterFromPhoto: '내 반려동물 사진으로 만들기',
 
@@ -60,6 +62,8 @@ export const onboardingStrings = {
 
   // 4단계: 캐릭터 확정
   confirmTitle: '이 캐릭터로 할까요?',
+  addPetConfirmTitle: '새 친구의 이름을 지어 주세요',
+  addPetConfirmSubmit: '새 친구 데려오기',
   confirmNameHint: '이름을 지어주세요',
   confirmSubmit: '확정하고 홈으로',
   confirmErrorName: '이름을 지어주세요',

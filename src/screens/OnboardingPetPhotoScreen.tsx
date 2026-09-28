@@ -25,7 +25,7 @@ import type { RootStackParamList } from '@/navigation/RootNavigator';
 type Props = NativeStackScreenProps<RootStackParamList, 'OnboardingPetPhoto'>;
 
 export function OnboardingPetPhotoScreen({ navigation, route }: Props) {
-  const { goalMinutes, blockSlots } = route.params;
+  const { goalMinutes, blockSlots, addPet } = route.params;
   // 첨부된 사진의 로컬 경로. 사진 선택 기능을 붙이면 여기에 채웁니다.
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const hasPhoto = photoUri !== null;
@@ -131,7 +131,11 @@ export function OnboardingPetPhotoScreen({ navigation, route }: Props) {
           variant={hasPhoto ? 'filled' : 'outline'}
           onPress={() => {
             if (!hasPhoto) return;
-            navigation.navigate('OnboardingConvert', { goalMinutes, blockSlots });
+            navigation.navigate('OnboardingConvert', {
+              goalMinutes,
+              blockSlots,
+              addPet,
+            });
           }}
         />
       </View>

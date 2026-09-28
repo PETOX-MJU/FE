@@ -11,7 +11,13 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { loadPetProfile } from '@/storage/petProfile';
+import {
+  activePetId,
+  loadPetProfile,
+  petList,
+  switchActivePet,
+  type LocalPet,
+} from '@/storage/petProfile';
 import {
   nextMissingPermission,
   openOverlaySettings,
@@ -75,7 +81,9 @@ export function HomeScreen({ navigation }: Props) {
   );
   // 걷기 그림이 있는 기본 캐릭터면 홈에서 좌우로 돌아다닌다 (코기·사진 캐릭터는 제자리)
   const [petWalk, setPetWalk] = useState<PetWalk | undefined>();
-  const [petName, setPetName] = useState<string | undefined>();
+  // 펫 슬롯 — 키우는 펫 목록과 지금 홈에 나와 있는 펫
+  const [pets, setPets] = useState<LocalPet[]>([]);
+  const [activeId, setActiveId] = useState<string | undefined>();
   // 사진으로 펫을 추가할 때 온보딩 화면에 그대로 넘겨 줄 값
   const [petGoal, setPetGoal] = useState<{
     goalMinutes: number;
@@ -107,12 +115,12 @@ export function HomeScreen({ navigation }: Props) {
     return () => sub.remove();
   }, [ensureOverlay]);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadPetProfile()
-        .then(profile => {
-          setPetName(profile?.name);
-          setPetGoal(
+  const loadPet = useCallback(() => {
+    loadPetProfile()
+      .then(profile => {
+        setPets(profile ? petList(profile) : []);
+        setActiveId(profile ? activePetId(profile) : undefined);
+        setPetGoal(
             profile
               ? {
                   goalMinutes: profile.goalMinutes,
@@ -120,17 +128,17 @@ export function HomeScreen({ navigation }: Props) {
                 }
               : null,
           );
-          if (profile?.generatedUri) {
-            setPetSource({ uri: profile.generatedUri });
-            setPetWalk(undefined);
-          } else if (profile?.pet) {
-            setPetSource(homePetImages[profile.pet]);
-            setPetWalk(petWalks[profile.pet]);
-          }
-        })
-        .catch(() => {});
-    }, []),
-  );
+        if (profile?.generatedUri) {
+          setPetSource({ uri: profile.generatedUri });
+          setPetWalk(undefined);
+        } else if (profile?.pet) {
+          setPetSource(homePetImages[profile.pet]);
+          setPetWalk(petWalks[profile.pet]);
+        }
+      })
+      .catch(() => {});
+  }, []);
+  useFocusEffect(loadPet);
 
   // 배경: 피그마처럼 화면 높이에 맞추고 왼쪽 정렬(오른쪽이 잘림).
   // 화면이 배경보다 가로로 넓으면 가로에 맞춘다.
@@ -242,13 +250,25 @@ export function HomeScreen({ navigation }: Props) {
         {openPanel === 'pets' && (
           <PetSlotPanel
             petSource={petSource}
-            petName={petName}
-            // 잠금을 풀면 회원가입 때와 같은 사진 등록 화면으로 보낸다
+            pets={pets}
+            activeId={activeId}
+            // 다른 펫을 홈(과 화면 위 오버레이)에 내보낸다
+            onSelectPet={id => {
+              switchActivePet(id)
+                .then(() => {
+                  loadPet();
+                  // 오버레이도 새 펫 그림으로 다시 띄운다
+                  return syncOverlay();
+                })
+                .catch(() => {});
+            }}
+            // 빈 슬롯 → 온보딩 캐릭터 화면을 "추가 모드"로 (기존 펫은 덮어쓰지 않는다)
             onAddPet={() => {
               setOpenPanel(null);
-              navigation.navigate('OnboardingPetPhoto', {
+              navigation.navigate('OnboardingCharacter', {
                 goalMinutes: petGoal?.goalMinutes ?? 120,
                 blockSlots: petGoal?.blockSlots ?? [],
+                addPet: true,
               });
             }}
             style={[

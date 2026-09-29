@@ -118,7 +118,9 @@ dependencies {
     // 숏폼 화면 분류기 (AI shorts_classifier, assets/shorts_classifier.tflite)
     implementation("org.tensorflow:tensorflow-lite:2.16.1")
     // 사진으로 펫 만들기 — 반려동물만 남기는 배경 제거 (ML Kit Subject Segmentation, 온디바이스)
+    // pet/PetRecolorModule, pet/PetTemplateModule 이 같이 쓴다. 모델은 Play 서비스가 기기에 내려받는다
     implementation("com.google.android.gms:play-services-mlkit-subject-segmentation:16.0.0-beta1")
+    implementation("com.google.android.gms:play-services-base:18.5.0")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
     testImplementation("junit:junit:4.13.2")
 

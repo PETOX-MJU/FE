@@ -185,6 +185,7 @@ export function OnboardingCharacterScreen({ navigation, route }: Props) {
               goalMinutes,
               blockSlots,
               slot,
+              pet, // 고른 견종에 사진 털색을 입힌다
             })
           }
         />

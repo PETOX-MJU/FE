@@ -35,6 +35,7 @@ import { BackdropContext, type Backdrop } from '@/components/GlassSurface';
 import { HomeTopActions } from '@/components/HomeTopActions';
 import { PET_SPRITE_W, PetCharacter } from '@/components/PetCharacter';
 import { PetSlotPanel } from '@/components/PetSlotPanel';
+import { requestUsageSync } from '@/features/screentime/sync';
 import { petWalk as petWalks, type PetWalk } from '@/assets/images/petWalk';
 import { ShopPanel } from '@/components/ShopPanel';
 import { useCoinBalance } from '@/hooks/useCoinBalance';
@@ -93,7 +94,12 @@ export function HomeScreen({ navigation }: Props) {
   const ensureOverlay = useCallback(async () => {
     const missing = await nextMissingPermission();
     setPermAsk(missing);
-    if (!missing) await syncOverlay();
+    if (!missing) {
+      await syncOverlay();
+      // 미션 기록 업로드 (숏폼 시청 분·펫 등장 횟수) — 동의를 아직 안 물었으면 한 번 묻고,
+      // 동의했으면 올린다(5분에 한 번). 서버는 그날 기록이 한 줄도 없으면 미션을 실패로 정산한다.
+      requestUsageSync();
+    }
   }, []);
 
   useFocusEffect(

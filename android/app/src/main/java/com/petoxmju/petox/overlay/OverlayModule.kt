@@ -76,6 +76,19 @@ class OverlayModule(private val context: ReactApplicationContext) : ReactContext
         }
     }
 
+    /**
+     * 오버레이가 잰 최근 days 일의 숏폼 시청 초(앱별)·펫 등장 횟수 (KST 날짜별, 오래된 날부터).
+     * JSON: [{"date":"2026-09-29","apps":{"com.google.android.youtube":123},"petCalls":2}, ...]
+     */
+    @ReactMethod
+    fun dailyShortsUsage(days: Int, promise: Promise) {
+        try {
+            promise.resolve(UsageLog.dump(context, days.coerceIn(1, UsageLog.KEEP_DAYS)))
+        } catch (e: Exception) {
+            promise.reject("USAGE_LOG_FAILED", e.message, e)
+        }
+    }
+
     /** 서비스가 지금 화면 캡처로 숏폼을 판별하고 있는가 */
     @ReactMethod
     fun isCapturing(promise: Promise) {

@@ -29,6 +29,11 @@ import { ConfirmModal } from '@/components/ConfirmModal';
 import { EditTextModal } from '@/components/EditTextModal';
 import { renameServerPet } from '@/api/onboarding';
 import {
+  loadUsageSyncConsent,
+  saveUsageSyncConsent,
+  syncDailyUsage,
+} from '@/features/screentime/sync';
+import {
   SCREEN_HEADER_HEIGHT,
   SCREEN_HEADER_TOP,
   ScreenHeader,
@@ -158,9 +163,35 @@ export function MyPageScreen({ navigation }: Props) {
         fetchNotificationSettings()
           .then(n => n && setNotif(n))
           .catch(e => console.warn('알림 설정을 불러오지 못했어요', e));
+        loadUsageSyncConsent()
+          .then(c => setUsageSync(c === 'granted'))
+          .catch(() => {});
       })
       .catch(() => setSignedIn(false));
   }, []);
+
+  // 미션 기록(숏폼 시청 시간·펫 등장 횟수) 서버 저장 동의 — 미션 판정·코인에 필요
+  const [usageSync, setUsageSync] = useState(false);
+  const toggleUsageSync = (v: boolean) => {
+    if (!signedIn) {
+      showDialog({
+        title: '로그인이 필요해요',
+        message: '로그인하면 미션 기록 저장을 설정할 수 있어요.',
+      });
+      return;
+    }
+    setUsageSync(v);
+    saveUsageSyncConsent(v ? 'granted' : 'denied')
+      .then(() => {
+        if (v) return syncDailyUsage({ force: true }).then(() => undefined);
+        showDialog({
+          title: '미션 기록 저장을 껐어요',
+          message:
+            '기록이 올라가지 않은 날은 미션이 실패로 처리되고 코인을 받을 수 없어요.',
+        });
+      })
+      .catch(e => console.warn('미션 기록 저장 설정 실패', e));
+  };
 
   const savePetName = async (name: string) => {
     // 펫이 여러 마리면 지금 홈에 나와 있는 펫만 바꾼다
@@ -262,6 +293,12 @@ export function MyPageScreen({ navigation }: Props) {
     {
       title: '알림 설정',
       rows: [
+        {
+          kind: 'toggle',
+          label: '미션 기록 저장 (숏폼 시간·펫 횟수)',
+          value: usageSync,
+          onChange: toggleUsageSync,
+        },
         {
           kind: 'toggle',
           label: '미션 알림',

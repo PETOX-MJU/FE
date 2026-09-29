@@ -394,6 +394,12 @@ class OverlayService : Service() {
             else -> false
         }
         if (!classifying || shortsNow) notShortsSec = 0
+
+        // 서버 미션용 기록 — 숏폼을 본 1초 (캡처를 안 쓰면 대상 앱을 본 1초). 화면이 꺼져 있으면 안 센다.
+        if (inTarget && (!classifying || shortsNow) && screenOn()) {
+            UsageLog.addShortsSecond(this, pkg!!)
+        }
+
         if (!watching) {
             watchedSec = 0
             notShortsSec = 0
@@ -410,6 +416,8 @@ class OverlayService : Service() {
         val stage = ((watchedSec - appearAfterSec) / growEverySec).coerceAtMost(STAGE_SCALES.size - 1)
         if (walkView != null) return // 걸어 들어오는 중 — 끝나면 앉은 모습으로 바뀐다
         if (stage != shownStage) {
+            // 서버 미션용 기록 — 펫이 처음 나타날 때(걸어 들어오기 시작 포함) 1회
+            if (shownStage == -1) UsageLog.addPetCall(this)
             if (shownStage == -1 && walkBitmaps.isNotEmpty()) {
                 startWalkIn()
                 return
@@ -418,6 +426,9 @@ class OverlayService : Service() {
             if (stage > 0) vibrate(stage)
         }
     }
+
+    private fun screenOn(): Boolean =
+        (getSystemService(Context.POWER_SERVICE) as android.os.PowerManager).isInteractive
 
     /** 마지막으로 앞에 올라온 앱을 사용 이벤트로 추적한다. */
     private fun updateForegroundApp() {

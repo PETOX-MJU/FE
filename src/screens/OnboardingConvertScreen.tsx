@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { makePetFromPhoto } from '@/features/pet/recolor';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -21,32 +22,49 @@ const TICK_MS = 60;
 export function OnboardingConvertScreen({ navigation, route }: Props) {
   const { goalMinutes, blockSlots } = route.params;
   const addPet = route.name === 'AddPetConvert';
-  const { slot } = route.params;
+  const { slot, pet, photoUri } = route.params;
+  const breed = pet ?? 'golden';
   const [percent, setPercent] = useState(0);
   const done = useRef(false);
+  // 변환 결과 (undefined = 아직, null = 실패 → 견종 원본색으로 진행)
+  const [made, setMade] = useState<string | null | undefined>(undefined);
 
+  // 사진 털색 → 고른 견종 픽셀 템플릿 재색칠 (기기 안에서, AI pet_template 이식)
   useEffect(() => {
-    // TODO: 사진 -> 픽셀 캐릭터 변환 연결. 지금은 진행률만 흉내 냅니다.
+    let alive = true;
+    makePetFromPhoto(photoUri, breed)
+      .then(r => alive && setMade(r?.uri ?? null))
+      .catch(() => alive && setMade(null));
+    return () => {
+      alive = false;
+    };
+  }, [photoUri, breed]);
+
+  // 진행률 연출 — 변환은 금방 끝나지만 한 번에 튀지 않게 끝까지 채운다.
+  // 결과가 아직이면 99 에서 기다린다.
+  useEffect(() => {
     const timer = setInterval(() => {
       setPercent(p => {
         if (p >= 100) return 100;
+        if (p >= 99 && made === undefined) return 99;
         return p + 1;
       });
     }, TICK_MS);
     return () => clearInterval(timer);
-  }, []);
+  }, [made]);
 
   useEffect(() => {
-    if (percent < 100 || done.current) return;
+    if (percent < 100 || made === undefined || done.current) return;
     done.current = true;
     // 완성된 캐릭터를 들고 확정 화면으로. 뒤로 눌러 변환 화면에 돌아오지 않도록 replace.
-    // TODO: 변환 결과 이미지 경로를 generatedUri 로 넘기면 확정 화면에 표시됩니다.
     navigation.replace(addPet ? 'AddPetConfirm' : 'OnboardingConfirm', {
       goalMinutes,
       blockSlots,
       slot,
+      pet: breed,
+      generatedUri: made ?? undefined,
     });
-  }, [percent, navigation, goalMinutes, blockSlots, addPet, slot]);
+  }, [percent, made, navigation, goalMinutes, blockSlots, addPet, slot, breed]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>

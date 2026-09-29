@@ -62,9 +62,23 @@ export type RootStackParamList = {
     edit?: string;
   };
   OnboardingApps: { goalMinutes: number; blockSlots: string[] };
-  OnboardingCharacter: { goalMinutes: number; blockSlots: string[] } & AddPetSlot;
-  OnboardingPetPhoto: { goalMinutes: number; blockSlots: string[] } & AddPetSlot;
-  OnboardingConvert: { goalMinutes: number; blockSlots: string[] } & AddPetSlot;
+  OnboardingCharacter: {
+    goalMinutes: number;
+    blockSlots: string[];
+  } & AddPetSlot;
+  /** pet: 캐릭터 화면에서 고른 견종 — 사진 털색을 이 견종 템플릿에 입힌다 */
+  OnboardingPetPhoto: {
+    goalMinutes: number;
+    blockSlots: string[];
+    pet?: PetId;
+  } & AddPetSlot;
+  OnboardingConvert: {
+    goalMinutes: number;
+    blockSlots: string[];
+    pet?: PetId;
+    /** 첨부한 사진 (기기 안에서만 쓴다) */
+    photoUri?: string;
+  } & AddPetSlot;
   OnboardingConfirm: AddPetSlot & {
     goalMinutes: number;
     blockSlots: string[];
@@ -207,7 +221,10 @@ export function RootNavigator() {
             name="AddPetCharacter"
             component={OnboardingCharacterScreen}
           />
-          <Stack.Screen name="AddPetPhoto" component={OnboardingPetPhotoScreen} />
+          <Stack.Screen
+            name="AddPetPhoto"
+            component={OnboardingPetPhotoScreen}
+          />
           <Stack.Screen
             name="AddPetConvert"
             component={OnboardingConvertScreen}

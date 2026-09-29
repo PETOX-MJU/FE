@@ -31,6 +31,8 @@ type OverlayNative = {
   isRunning(): Promise<boolean>;
   /** 숏폼 화면 판별용 화면 캡처 허용 창. 허용하면 true — 다음 start() 부터 화면으로 숏폼을 가린다 */
   requestScreenCapture?(): Promise<boolean>;
+  /** 오버레이가 잰 날짜별 숏폼 시청 초·펫 등장 횟수 (JSON 문자열) */
+  dailyShortsUsage?(days: number): Promise<string>;
   isCapturing?(): Promise<boolean>;
 };
 
@@ -193,4 +195,20 @@ export const overlayPermissionText = {
 /** 펫 오버레이 서비스 끄기 (로그아웃·탈퇴 때) */
 export function stopOverlay() {
   native?.stop();
+}
+
+/** 오버레이가 잰 하루치 기록 (KST 날짜) */
+export type ShortsUsageDay = {
+  date: string;
+  /** 패키지 → 숏폼 시청 초 */
+  apps: Record<string, number>;
+  petCalls: number;
+};
+
+/** 최근 days 일(오늘 포함) 숏폼 시청 초·펫 등장 횟수. 네이티브가 없으면(다시 빌드 전) null */
+export async function dailyShortsUsage(
+  days: number,
+): Promise<ShortsUsageDay[] | null> {
+  if (!overlayAvailable || !native?.dailyShortsUsage) return null;
+  return JSON.parse(await native.dailyShortsUsage(days)) as ShortsUsageDay[];
 }

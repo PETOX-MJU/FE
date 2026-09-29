@@ -12,6 +12,7 @@ import {
 //  1) 앱별 숏폼 시청 분 → daily_usage upsert (user_id, app_id, usage_date, minutes)
 //     숏폼 화면(쇼츠·릴스)으로 판정된 시간만 센다. 화면 캡처를 거절했으면 그 앱을 본 시간.
 //     0분인 날도 한 줄 올린다 — 행이 없으면 서버가 "보고 안 함"으로 보고 실패 처리한다.
+//     단, 오버레이가 한 번도 돌지 않은 날(alive=false)은 올리지 않는다 — 기록이 없는 것이지 0분이 아니다.
 //  2) 펫 등장 횟수 → RPC report_pet_calls(p_date, p_calls) (BE 가 만드는 중, 없으면 조용히 건너뜀)
 // 미션 생성·판정·코인 지급은 전부 서버가 한다.
 //
@@ -99,6 +100,7 @@ export type SyncResult =
         | 'no-session'
         | 'no-consent'
         | 'no-native'
+        | 'no-data'
         | 'throttled'
         | 'no-apps';
     };
@@ -127,8 +129,11 @@ async function runSync(force: boolean): Promise<SyncResult> {
     return { status: 'skipped', reason: 'no-consent' };
   if (!force && Date.now() - lastSyncAt < MIN_INTERVAL_MS)
     return { status: 'skipped', reason: 'throttled' };
-  const days = await dailyShortsUsage(SYNC_DAYS);
-  if (!days) return { status: 'skipped', reason: 'no-native' };
+  const recorded = await dailyShortsUsage(SYNC_DAYS);
+  if (!recorded) return { status: 'skipped', reason: 'no-native' };
+  // 오버레이가 꺼져 있던 날은 올리지 않는다 — 0분으로 올리면 서버가 미션 성공으로 본다
+  const days = recorded.filter(d => d.alive);
+  if (days.length === 0) return { status: 'skipped', reason: 'no-data' };
 
   // 서버가 아는 앱(유튜브·인스타·틱톡) 중 사용자가 감지 앱으로 고른 것만 올린다.
   const [{ data: serverApps, error }, selected] = await Promise.all([

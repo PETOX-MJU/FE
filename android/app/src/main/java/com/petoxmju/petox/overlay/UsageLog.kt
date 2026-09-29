@@ -28,6 +28,16 @@ object UsageLog {
         p.edit().putInt(key, p.getInt(key, 0) + 1).apply()
     }
 
+    /**
+     * 오늘 오버레이가 돌았다는 표시. 숏폼을 0초 본 날과 오버레이가 꺼져 있던 날을 구분하려고 쓴다
+     * (꺼져 있던 날은 업로드하지 않아 서버가 "보고 없음 → 실패"로 처리한다).
+     */
+    fun markAlive(ctx: Context) {
+        val key = "a|${today()}"
+        val p = prefs(ctx)
+        if (!p.getBoolean(key, false)) p.edit().putBoolean(key, true).apply()
+    }
+
     fun addPetCall(ctx: Context) {
         val key = "p|${today()}"
         val p = prefs(ctx)
@@ -51,7 +61,8 @@ object UsageLog {
                 JSONObject()
                     .put("date", date)
                     .put("apps", apps)
-                    .put("petCalls", (all["p|$date"] as? Int) ?: 0),
+                    .put("petCalls", (all["p|$date"] as? Int) ?: 0)
+                    .put("alive", (all["a|$date"] as? Boolean) ?: false),
             )
         }
         return out.toString()

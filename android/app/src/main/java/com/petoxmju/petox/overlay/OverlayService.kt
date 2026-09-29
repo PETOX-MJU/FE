@@ -379,6 +379,7 @@ class OverlayService : Service() {
     // ---- 감지 ----
 
     private fun step() {
+        UsageLog.markAlive(this)
         updateForegroundApp()
         val pkg = foregroundPkg
         val inTarget = pkg != null && targets.contains(pkg)

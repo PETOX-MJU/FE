@@ -20,6 +20,7 @@ class MainApplication : Application(), ReactApplication {
           add(ScreentimePackage())
           add(OverlayPackage())
           add(InstalledAppsPackage())
+          add(com.petoxmju.petox.pet.PetRecolorPackage())
         },
     )
   }

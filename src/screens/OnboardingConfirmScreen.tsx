@@ -73,7 +73,7 @@ export function OnboardingConfirmScreen({ navigation, route }: Props) {
       await saveOnboardingToServer({
         petName: trimmed,
         goalMinutes,
-        isDefaultCharacter: pet !== undefined,
+        isDefaultCharacter: pet !== undefined && generatedUri === undefined,
         breed: pet,
       });
       navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
@@ -115,7 +115,7 @@ export function OnboardingConfirmScreen({ navigation, route }: Props) {
     try {
       const serverId = await addServerPet({
         name: trimmed,
-        isDefaultCharacter: pet !== undefined,
+        isDefaultCharacter: pet !== undefined && generatedUri === undefined,
         breed: pet,
       });
       await addLocalPet({ name: trimmed, pet, generatedUri, serverId });

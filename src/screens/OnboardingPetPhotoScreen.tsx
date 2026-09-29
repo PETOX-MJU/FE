@@ -31,7 +31,7 @@ type Props = NativeStackScreenProps<
 export function OnboardingPetPhotoScreen({ navigation, route }: Props) {
   const { goalMinutes, blockSlots } = route.params;
   const addPet = route.name === 'AddPetPhoto';
-  const { slot } = route.params;
+  const { slot, pet } = route.params;
   // 첨부된 사진의 로컬 경로. 사진 선택 기능을 붙이면 여기에 채웁니다.
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const hasPhoto = photoUri !== null;
@@ -40,7 +40,10 @@ export function OnboardingPetPhotoScreen({ navigation, route }: Props) {
   const applyResult = (res: ImagePickerResponse) => {
     if (res.didCancel) return;
     if (res.errorCode) {
-      showDialog({ title: '사진을 불러오지 못했어요', message: res.errorMessage ?? res.errorCode });
+      showDialog({
+        title: '사진을 불러오지 못했어요',
+        message: res.errorMessage ?? res.errorCode,
+      });
       return;
     }
     const uri = res.assets?.[0]?.uri;
@@ -64,7 +67,10 @@ export function OnboardingPetPhotoScreen({ navigation, route }: Props) {
 
   const takePhoto = async () => {
     if (!(await ensureCameraPermission())) {
-      showDialog({ title: '카메라 권한이 필요해요', message: '설정에서 권한을 허용해 주세요.' });
+      showDialog({
+        title: '카메라 권한이 필요해요',
+        message: '설정에서 권한을 허용해 주세요.',
+      });
       return;
     }
     const res = await launchCamera({
@@ -125,13 +131,15 @@ export function OnboardingPetPhotoScreen({ navigation, route }: Props) {
           <Pressable
             accessibilityRole="button"
             onPress={takePhoto}
-            style={({ pressed }) => [styles.pickBtn, pressed && styles.pressed]}>
+            style={({ pressed }) => [styles.pickBtn, pressed && styles.pressed]}
+          >
             <Text style={styles.pickLabel}>{S.petPhotoCamera}</Text>
           </Pressable>
           <Pressable
             accessibilityRole="button"
             onPress={choosePhoto}
-            style={({ pressed }) => [styles.pickBtn, pressed && styles.pressed]}>
+            style={({ pressed }) => [styles.pickBtn, pressed && styles.pressed]}
+          >
             <Text style={styles.pickLabel}>{S.petPhotoAlbum}</Text>
           </Pressable>
         </View>
@@ -151,7 +159,13 @@ export function OnboardingPetPhotoScreen({ navigation, route }: Props) {
             if (!hasPhoto) return;
             navigation.navigate(
               addPet ? 'AddPetConvert' : 'OnboardingConvert',
-              { goalMinutes, blockSlots, slot },
+              {
+                goalMinutes,
+                blockSlots,
+                slot,
+                pet,
+                photoUri: photoUri ?? undefined,
+              },
             );
           }}
         />

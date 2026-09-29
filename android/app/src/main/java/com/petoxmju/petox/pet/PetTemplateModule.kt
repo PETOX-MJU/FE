@@ -6,6 +6,7 @@ import android.graphics.Matrix
 import android.media.ExifInterface
 import android.net.Uri
 import android.util.Log
+import androidx.core.content.pm.PackageInfoCompat
 import com.facebook.react.ReactPackage
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.NativeModule
@@ -96,9 +97,16 @@ class PetTemplateModule(private val context: ReactApplicationContext) : ReactCon
                         val bmp = loadSprite(uri) ?: error("스프라이트를 읽지 못함: $key")
                         val px = IntArray(bmp.width * bmp.height).also { bmp.getPixels(it, 0, bmp.width, 0, 0, bmp.width, bmp.height) }
                         PetPalette.recolor(px, map)
-                        val tmp = File(dir, file.name + ".tmp")
-                        tmp.outputStream().use { Bitmap.createBitmap(px, bmp.width, bmp.height, Bitmap.Config.ARGB_8888).compress(Bitmap.CompressFormat.PNG, 100, it) }
-                        tmp.renameTo(file) // 쓰다 끊긴 파일을 캐시로 쓰지 않게
+                        // 호출마다 고유한 임시 파일에 쓰고 rename — 같은 키로 동시에 불려도 서로 덮어쓰지 않고, 쓰다 끊긴 파일을 캐시로 쓰지 않게
+                        val tmp = File.createTempFile("s_" + file.nameWithoutExtension, ".tmp", dir)
+                        try {
+                            val ok = tmp.outputStream().use { Bitmap.createBitmap(px, bmp.width, bmp.height, Bitmap.Config.ARGB_8888).compress(Bitmap.CompressFormat.PNG, 100, it) }
+                            // 다른 호출이 먼저 만들었으면 그 파일을 쓴다. 못 옮겼는데 대상도 없으면 실패
+                            if (ok && !file.exists() && !tmp.renameTo(file) && !file.exists()) error("스프라이트 저장 실패: $key")
+                            if (!ok && !file.exists()) error("스프라이트 저장 실패: $key")
+                        } finally {
+                            tmp.delete() // rename 성공 후엔 이미 없어 no-op
+                        }
                     }
                     result.putString(key, Uri.fromFile(file).toString())
                 }
@@ -109,9 +117,11 @@ class PetTemplateModule(private val context: ReactApplicationContext) : ReactCon
         }
     }
 
-    /** 스프라이트·팔레트가 바뀌면 키가 바뀌어 새로 만든다. */
+    /** 스프라이트·팔레트·앱 버전이 바뀌면 키가 바뀌어 새로 만든다. 릴리스의 스프라이트 소스는 drawable 이름이라 그림이 바뀌어도 그대로고, filesDir 는 업데이트 후에도 남는다. */
     private fun cacheKey(breed: String, main: String?, sub: String?, src: Map<String, String>): String {
-        val text = listOf(breed, main, sub, paletteJson, src.toSortedMap().toString()).joinToString("\n")
+        val pkg = context.packageManager.getPackageInfo(context.packageName, 0)
+        val version = "${PackageInfoCompat.getLongVersionCode(pkg)}:${pkg.lastUpdateTime}"
+        val text = listOf(breed, main, sub, paletteJson, src.toSortedMap().toString(), version).joinToString("\n")
         return MessageDigest.getInstance("SHA-1").digest(text.toByteArray()).joinToString("") { "%02x".format(it) }.take(16)
     }
 
@@ -137,7 +147,9 @@ class PetTemplateModule(private val context: ReactApplicationContext) : ReactCon
     /** EXIF 회전을 적용하고 긴 변을 MAX_PHOTO_SIDE 이하로 줄여 읽는다. */
     private fun decodeUpright(uri: Uri): Bitmap? {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        open(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) } ?: return null
+        // 크기만 읽는 디코딩은 성공해도 null 을 돌려준다 — 스트림을 못 열었거나 크기를 못 읽은 경우만 실패
+        open(uri)?.use { BitmapFactory.decodeStream(it, null, bounds); true } ?: return null
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
         var sample = 1
         while (max(bounds.outWidth, bounds.outHeight) / (sample * 2) >= MAX_PHOTO_SIDE) sample *= 2
         val bmp = open(uri)?.use { BitmapFactory.decodeStream(it, null, BitmapFactory.Options().apply { inSampleSize = sample }) } ?: return null

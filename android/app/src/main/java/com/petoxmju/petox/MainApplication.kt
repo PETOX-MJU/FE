@@ -7,6 +7,7 @@ import com.facebook.react.ReactHost
 import com.facebook.react.ReactNativeApplicationEntryPoint.loadReactNative
 import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.petoxmju.petox.apps.InstalledAppsPackage
+import com.petoxmju.petox.pet.PetTemplatePackage
 import com.petoxmju.petox.overlay.OverlayPackage
 import com.petoxmju.petox.screentime.ScreentimePackage
 
@@ -20,6 +21,7 @@ class MainApplication : Application(), ReactApplication {
           add(ScreentimePackage())
           add(OverlayPackage())
           add(InstalledAppsPackage())
+          add(PetTemplatePackage())
         },
     )
   }

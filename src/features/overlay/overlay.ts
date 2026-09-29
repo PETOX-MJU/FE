@@ -203,6 +203,8 @@ export type ShortsUsageDay = {
   /** 패키지 → 숏폼 시청 초 */
   apps: Record<string, number>;
   petCalls: number;
+  /** 그날 오버레이가 한 번이라도 돌았는가. false 인 날은 기록이 없는 것(0초와 다름) */
+  alive: boolean;
 };
 
 /** 최근 days 일(오늘 포함) 숏폼 시청 초·펫 등장 횟수. 네이티브가 없으면(다시 빌드 전) null */

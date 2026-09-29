@@ -11,6 +11,11 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.uimanager.ViewManager
+import com.google.android.gms.tasks.Tasks
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.segmentation.subject.SubjectSegmentation
+import com.google.mlkit.vision.segmentation.subject.SubjectSegmenterOptions
+import java.util.concurrent.TimeUnit
 import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
@@ -24,11 +29,12 @@ import kotlin.math.sqrt
  * 반려동물 사진 → 견종 픽셀 템플릿 재색칠 (AI 저장소 pet_template/reference.py 이식).
  * JS 이름: NativeModules.PetoxPetRecolor
  *
- * 1. 사진에서 털색 뽑기: 가운데 부분 픽셀을 Lab 에서 가장 가까운 스와치(breeds.json)에 붙여 면적 순 main·sub.
- *    (reference.py 는 배경 제거 후 뽑는다. 여기서는 ML Kit 없이 사진 가운데만 본다 — 반려동물이 가운데 있는 사진 기준)
- * 2. 견종 × main·sub → 색 치환표: reference.py 의 fit_to_template + color_map 결과를 미리 뽑아 둔
+ * 1. 배경 제거: ML Kit Subject Segmentation 으로 반려동물(주 피사체) 픽셀만 남긴다 (reference.py 의 rembg 자리).
+ *    모델이 아직 없거나 실패하면 사진 가운데 부분만 본다.
+ * 2. 털색 뽑기: 남은 픽셀을 Lab 에서 가장 가까운 스와치(breeds.json)에 붙여 면적 순 main·sub.
+ * 3. 견종 × main·sub → 색 치환표: reference.py 의 fit_to_template + color_map 결과를 미리 뽑아 둔
  *    assets/pet_templates/recolor.json 을 그대로 쓴다 (앱과 파이썬이 같은 결과).
- * 3. assets/pet_templates/<견종>.png(홈 스프라이트) 픽셀을 치환해 앱 files/pets/ 에 PNG 로 저장.
+ * 4. assets/pet_templates/<견종>.png(홈 스프라이트) 픽셀을 치환해 앱 files/pets/ 에 PNG 로 저장.
  * 사진은 기기 밖으로 나가지 않고, 읽은 뒤 바로 버린다.
  */
 class PetRecolorModule(private val context: ReactApplicationContext) : ReactContextBaseJavaModule(context) {
@@ -37,6 +43,10 @@ class PetRecolorModule(private val context: ReactApplicationContext) : ReactCont
     private companion object {
         const val SUB_RATIO = 0.2
         const val MAX_SIDE = 512
+        /** 이 확률 이상이면 반려동물 픽셀로 본다 */
+        const val FOREGROUND = 0.5f
+        /** 배경 제거에 쓰는 최대 시간 — 넘으면 가운데만 본다 */
+        const val SEGMENT_TIMEOUT_SEC = 8L
     }
 
     private val table: JSONObject by lazy {
@@ -60,20 +70,25 @@ class PetRecolorModule(private val context: ReactApplicationContext) : ReactCont
                 val photo = decodePhoto(photoUri)
                 var main: String? = null
                 var sub: String? = null
+                var segmented = false
                 if (photo != null) {
                     val counts = IntArray(names.size)
                     var total = 0
-                    val x0 = photo.width / 4
-                    val x1 = photo.width * 3 / 4
-                    val y0 = photo.height / 5
-                    val y1 = photo.height * 4 / 5
+                    // 배경 제거 마스크 (w*h, 0~1). 없으면 가운데 영역만 본다
+                    val mask = foregroundMask(photo)
+                    segmented = mask != null
+                    val x0 = if (mask != null) 0 else photo.width / 4
+                    val x1 = if (mask != null) photo.width else photo.width * 3 / 4
+                    val y0 = if (mask != null) 0 else photo.height / 5
+                    val y1 = if (mask != null) photo.height else photo.height * 4 / 5
                     val stride = maxOf(1, maxOf(photo.width, photo.height) / 256)
                     var y = y0
                     while (y < y1) {
                         var x = x0
                         while (x < x1) {
                             val p = photo.getPixel(x, y)
-                            if ((p ushr 24) > 128) {
+                            val isPet = mask == null || mask[y * photo.width + x] >= FOREGROUND
+                            if (isPet && (p ushr 24) > 128) {
                                 val lab = rgbToLab((p shr 16) and 0xFF, (p shr 8) and 0xFF, p and 0xFF)
                                 var best = 0
                                 var bestD = Double.MAX_VALUE
@@ -127,10 +142,39 @@ class PetRecolorModule(private val context: ReactApplicationContext) : ReactCont
                 result.putString("uri", Uri.fromFile(file).toString())
                 result.putString("main", main)
                 result.putString("sub", sub)
+                result.putBoolean("segmented", segmented)
                 promise.resolve(result)
             } catch (e: Throwable) {
                 promise.reject("RECOLOR_FAILED", e.message, e)
             }
+        }
+    }
+
+    /**
+     * ML Kit 으로 주 피사체(반려동물) 확률 마스크를 얻는다. 모델이 아직 내려받는 중이거나
+     * 실패·시간 초과면 null — 호출 측은 사진 가운데만 본다. 피사체가 너무 작아도 null.
+     */
+    private fun foregroundMask(photo: Bitmap): FloatArray? {
+        val segmenter = SubjectSegmentation.getClient(
+            SubjectSegmenterOptions.Builder().enableForegroundConfidenceMask().build(),
+        )
+        return try {
+            val result = Tasks.await(
+                segmenter.process(InputImage.fromBitmap(photo, 0)),
+                SEGMENT_TIMEOUT_SEC,
+                TimeUnit.SECONDS,
+            )
+            val buf = result.foregroundConfidenceMask ?: return null
+            val mask = FloatArray(photo.width * photo.height)
+            buf.rewind()
+            buf.get(mask)
+            val fg = mask.count { it >= FOREGROUND }
+            if (fg < mask.size / 100) null else mask // 1% 도 안 되면 못 찾은 것
+        } catch (e: Exception) {
+            android.util.Log.w("PetoxRecolor", "subject segmentation failed — 가운데만 봅니다", e)
+            null
+        } finally {
+            segmenter.close()
         }
     }
 

@@ -47,6 +47,12 @@ class PetRecolorModule(private val context: ReactApplicationContext) : ReactCont
         const val FOREGROUND = 0.5f
         /** 배경 제거에 쓰는 최대 시간 — 넘으면 가운데만 본다 */
         const val SEGMENT_TIMEOUT_SEC = 8L
+        /**
+         * 채도 기준 (Lab chroma). 사진 픽셀과 스와치를 "색이 있는 쪽 / 무채색 쪽"으로 나눠 같은 쪽끼리만 비교한다.
+         * 흰·크림 털이 그늘에서 어두워지면 밝기만 보고 회색에 붙는 문제가 있었다 (README 알려진 한계).
+         * 따뜻한 색 기운이 남아 있으면 크림·골드·갈색 쪽에서 고른다.
+         */
+        const val CHROMA_SPLIT = 8.0
     }
 
     private val table: JSONObject by lazy {
@@ -65,6 +71,7 @@ class PetRecolorModule(private val context: ReactApplicationContext) : ReactCont
                 val swatches = table.getJSONObject("swatches")
                 val names = swatches.keys().asSequence().toList()
                 val swatchLabs = names.map { hexToLab(swatches.getString(it)) }
+                val swatchColorful = swatchLabs.map { chroma(it) >= CHROMA_SPLIT }
 
                 // 1) 사진 → main·sub 스와치
                 val photo = decodePhoto(photoUri)
@@ -90,9 +97,11 @@ class PetRecolorModule(private val context: ReactApplicationContext) : ReactCont
                             val isPet = mask == null || mask[y * photo.width + x] >= FOREGROUND
                             if (isPet && (p ushr 24) > 128) {
                                 val lab = rgbToLab((p shr 16) and 0xFF, (p shr 8) and 0xFF, p and 0xFF)
+                                val colorful = chroma(lab) >= CHROMA_SPLIT
                                 var best = 0
                                 var bestD = Double.MAX_VALUE
                                 for (i in swatchLabs.indices) {
+                                    if (swatchColorful[i] != colorful) continue
                                     val d = dist(lab, swatchLabs[i])
                                     if (d < bestD) { bestD = d; best = i }
                                 }
@@ -224,6 +233,8 @@ class PetRecolorModule(private val context: ReactApplicationContext) : ReactCont
         val fz = f(z)
         return doubleArrayOf(116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz))
     }
+
+    private fun chroma(lab: DoubleArray): Double = sqrt(lab[1] * lab[1] + lab[2] * lab[2])
 
     private fun dist(a: DoubleArray, b: DoubleArray): Double {
         val d0 = a[0] - b[0]

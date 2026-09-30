@@ -6,7 +6,7 @@ import { SYSTEM, failures, fill } from '@/features/screentime/slmCheck';
 LogBox.ignoreLogs(['[slm]']);
 
 // ponytail: 시연용 고정 경로 — adb 로 넣는다(AI 저장소 slm_summary/README). 배포 때는 모델 다운로드로 바꾼다.
-const MODEL_PATH = 'file:///data/data/com.petoxmju.petox/files/ft-v2-q4.gguf';
+const MODEL_PATH = 'file:///data/data/com.petoxmju.petox/files/ft-v4-q4.gguf';
 const TIMEOUT_MS = 15_000;
 
 let queue: Promise<unknown> = Promise.resolve();
@@ -23,7 +23,7 @@ async function quietly(f: () => unknown): Promise<void> {
 }
 
 /**
- * 분석기 사실 하나를 반려견 말투 한 문장으로. 검사를 통과해 앱 이름까지 채운 문장, 아니면 null.
+ * 분석기 수치 줄(slmCheck toFact)을 반려견 말투 한 문장으로. 검사를 통과해 앱 이름까지 채운 문장, 아니면 null.
  * null 이면 호출하는 쪽이 템플릿 문장을 그대로 쓴다.
  *
  * 모델은 1GB 가까이 메모리를 쓴다. 호출을 줄 세워 동시에 두 개를 올리지 않고,
@@ -51,7 +51,7 @@ async function generate(fact: string, seed: number): Promise<string | null> {
     const result = await held.ctx.completion({
       messages: [
         { role: 'system', content: SYSTEM },
-        { role: 'user', content: `사실: ${fact}` },
+        { role: 'user', content: `수치:\n${fact}` },
       ],
       jinja: true,
       enable_thinking: false,

@@ -17,15 +17,19 @@ test('영문 앱 이름 조사', () => {
   expect(hasBatchim('9')).toBe(false);
 });
 
-test('NIGHT_TOP_APP 만 패키지명을 {앱} 으로 바꾼다', () => {
-  const night = {
+// 분석기 evidence → 수치 줄. 기대값은 Python data.fact_* (학습 입력) — export_cases.py 의 facts.
+test.each(cases.facts.map((c, i) => [i, c.code, c]))('Python 과 같은 수치 줄 #%d %s', (_i, _code, c) => {
+  expect(toFact(c as Parameters<typeof toFact>[0])).toBe(c.fact);
+});
+
+test('toFact: 패키지명은 줄에 들어가지 않고 {앱} 으로 쓴다', () => {
+  const fact = toFact({
     code: 'NIGHT_TOP_APP',
-    evidence: { package_name: 'com.google.android.youtube' },
+    evidence: { package_name: 'com.google.android.youtube', night_total_ms: 91 * 60_000, night_share_pct: 50 },
     text: '취침 전후로 가장 오래 사용한 앱은 com.google.android.youtube이고 91분입니다. 야간 사용의 50.0%입니다.',
-  };
-  expect(toFact(night)).toBe('취침 전후로 가장 오래 사용한 앱은 {앱}이고 91분입니다. 야간 사용의 50.0%입니다.');
-  const decreased = { code: 'SELECTED_USAGE_DECREASED', evidence: {}, text: '전주 대비 주간 합계가 94분 줄었습니다.' };
-  expect(toFact(decreased)).toBe(decreased.text);
+  });
+  expect(fact).toBe('종류: 야간 최다 사용 앱\n앱: {앱}\n야간 사용: 91분\n야간 비중: 50.0%');
+  expect(fact).not.toContain('youtube');
 });
 
 test('주 시작일 → epoch day (같은 주는 같은 시드)', () => {

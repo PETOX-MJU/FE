@@ -1,7 +1,7 @@
 import { SYSTEM } from '../src/features/screentime/slmCheck';
 
-const FACT = '지난주 선택한 앱 사용량은 하루 평균 38분입니다. 전주 대비 주간 합계가 29분 줄었습니다. 변화율은 9.8%입니다.';
-const NIGHT = '취침 전후로 가장 오래 사용한 앱은 {앱}이고 32분입니다.';
+const FACT = '종류: 관리 앱 사용 감소\n하루 평균: 38분\n주간 감소량: 29분\n감소율: 9.8%';
+const NIGHT = '종류: 야간 최다 사용 앱\n앱: {앱}\n야간 사용: 32분';
 
 function fakeContext(content: string, delayMs = 0) {
   return {
@@ -31,7 +31,7 @@ test('검사를 통과하면 앱 이름을 채워 돌려주고 모델을 해제�
   expect(ctx.completion).toHaveBeenCalledWith(expect.objectContaining({
     messages: [
       { role: 'system', content: SYSTEM },
-      { role: 'user', content: `사실: ${NIGHT}` },
+      { role: 'user', content: `수치:\n${NIGHT}` },
     ],
     jinja: true, enable_thinking: false, n_predict: 80, temperature: 0.5, seed: 1,
   }));

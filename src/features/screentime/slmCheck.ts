@@ -87,6 +87,8 @@ function meaningErrors(fact: string, out: string): string[] {
   }
   const allDone = Array.from(fact.matchAll(/(\d+)개 중 (\d+)개/g)).some(([, a, b]) => a === b);
   if (/모두 (달성|완료)|다 달성/.test(body) && !allDone) errs.push('모두 달성 아님');
+  const AVG = /하루\s*(에\s*)?평균/;
+  if (AVG.test(body) && !AVG.test(fact)) errs.push('하루 평균 없음');
   return errs;
 }
 

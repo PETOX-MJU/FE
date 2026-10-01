@@ -32,3 +32,11 @@ test('주 시작일 → epoch day (같은 주는 같은 시드)', () => {
   expect(weekSeed('1970-01-02')).toBe(1);
   expect(weekSeed('2026-09-14')).toBe(20710);
 });
+
+test('입력에 하루 평균이 없는데 출력에 나오면 탈락', () => {
+  const fact = '전주 대비 주간 합계가 94분 줄었습니다.';
+  expect(failures(fact, '지난주보다 94분 줄었고 하루 평균도 줄었어요.')).toContain('하루 평균 없음');
+  expect(failures(fact, '지난주보다 94분 줄었어요.')).toEqual([]);
+  const withMean = '지난주 선택한 앱 사용량은 하루 평균 30분입니다. 전주 대비 주간 합계가 94분 줄었습니다.';
+  expect(failures(withMean, '하루 평균 30분, 94분 줄었어요.')).not.toContain('하루 평균 없음');
+});
